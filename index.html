@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PocketWatcher - Event Management Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        [x-cloak] {
+            display: none !important;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(180deg, #eadd66 0%, #a24b4b 100%);
+        }
+
+        .card-shadow {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        .star-rating {
+            color: #fbbf24;
+        }
+
+        .budget-progress {
+            transition: width 0.3s ease;
+        }
+
+        .modal-backdrop {
+            backdrop-filter: blur(4px);
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 min-h-screen" x-data="pocketWatcherApp()" x-init="init()">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg fixed w-full top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-yellow-800">PocketWatcher</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Search Bar -->
+                    <template x-if="isAuthenticated">
+                        <div class="relative">
+                            <input x-model="globalSearch.query" @input="performGlobalSearch()"
+                                @focus="showSearchResults = true"
+                                @blur="setTimeout(() => showSearchResults = false, 200)" type="text"
+                                placeholder="Search vendors, venues, events..."
+                                class="w-64 px-4 py-2 pl-10 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+
+                            <!-- Search Results Dropdown -->
+                            <div x-show="showSearchResults && globalSearch.results" x-cloak
+                                class="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50">
+                                <template x-if="request.quotedPrice && request.status === 'accepted'">
+                                    <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                                        <p class="text-green-800">
+                                            <i class="fas fa-check-circle mr-2"></i>
+                                            Quoted Price: AED <span
+                                                x-text="request.quotedPrice.toLocaleString()"></span>
+                                        </p>
+                                    </div>
+                                </template>
+                            </div>
+                    </template>
+
+                    <template x-if="vendorRequests.length === 0">
+                        <div class="text-center text-gray-500 py-12">
+                            <i class="fas fa-inbox text-6xl mb-4"></i>
+                            <h3 class="text-xl font-medium mb-2">No requests yet</h3>
+                            <p>Event organizers will send you service requests here</p>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+        </template>
+        </div>
+
+        <!-- Modals -->
+
+        <!-- Login Modal -->
+        <div x-show="showLogin" x-cloak
+            class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4" @click.away="showLogin = false">
+                <h2 class="text-2xl font-bold mb-6">Login</h2>
+                <form @submit.prevent="login()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Email</label>
+                        <input x-model="loginForm.email" type="email" required
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium mb-2">Password</label>
+                        <input x-model="loginForm.password" type="password" required
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    </div>
+                    <div class="flex justify-between">
+                        <button type="button" @click="showLogin = false"
+                            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                            Login
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Register Modal -->
+        <div x-show="showRegister" x-cloak
+            class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 max-h-screen overflow-y-auto"
+                @click.away="showRegister = false">
+                <h2 class="text-2xl font-bold mb-6">Register</h2>
+                <form @submit.prevent="register()">
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Name</label>
+                        <input x-model="registerForm.name" type="text" required
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Email</label>
+                        <input x-model="registerForm.email" type="email" required
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Password</label>
+                        <input x-model="registerForm.password" type="password" required
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">User Type</label>
+                        <select x-model="registerForm.userType" required
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            <option value="">Select Type</option>
+                            <option value="organizer">Event Organizer</option>
+                            <option value="vendor">Service Vendor</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Emirate</label>
+                        <select x-model="registerForm.location.emirate" required
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            <option value="">Select Emirate</option>
+                            <option value="Dubai">Dubai</option>
+                            <option value="Abu Dhabi">Abu Dhabi</option>
+                            <option value="Sharjah">Sharjah</option>
+                            <option value="Ajman">Ajman</option>
+                            <option value="Ras Al Khaimah">Ras Al Khaimah</option>
+                            <option value="Fujairah">Fujairah</option>
+                            <option value="Umm Al Quwain">Umm Al Quwain</option>
+                        </select>
+                    </div>
+
+                    <!-- Vendor specific fields -->
+                    <template x-if="registerForm.userType === 'vendor'">
+                        <div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-2">Business Name</label>
+                                <input x-model="registerForm.businessName" type="text"
+                                    class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                            </div>
+                            <div class="mb-4">
+                                <label class="block text-sm font-medium mb-2">Category</label>
+                                <select x-model="registerForm.category"
+                                    class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                    <option value="">Select Category</option>
+                                    <option value="catering">Catering</option>
+                                    <option value="photography">Photography</option>
+                                    <option value="decoration">Decoration</option>
+                                    <option value="entertainment">Entertainment</option>
+                                    <option value="audio_visual">Audio Visual</option>
+                                    <option value="flowers">Flowers</option>
+                                    <option value="transportation">Transportation</option>
+                                    <option value="security">Security</option>
+                                    <option value="venue">Venue</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </template>
+
+                    <!-- Organizer specific fields -->
+                    <template x-if="registerForm.userType === 'organizer'">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Organization Type</label>
+                            <select x-model="registerForm.organizationType"
+                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <option value="">Select Type</option>
+                                <option value="individual">Individual</option>
+                                <option value="student">Student</option>
+                                <option value="freelancer">Freelancer</option>
+                                <option value="sme_owner">SME Owner</option>
+                            </select>
+                        </div>
+                    </template>
+
+                    <div class="flex justify-between">
+                        <button type="button" @click="showRegister = false"
+                            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                            Register
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Create Event Modal -->
+        <div x-show="showCreateEvent" x-cloak
+            class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto"
+                @click.away="showCreateEvent = false">
+                <h2 class="text-2xl font-bold mb-6">Create New Event</h2>
+                <form @submit.prevent="createEvent()">
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Event Title</label>
+                            <input x-model="eventForm.title" type="text" required
+                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Event Type</label>
+                            <select x-model="eventForm.eventType" required
+                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                                <option value="">Select Type</option>
+                                <option value="wedding">Wedding</option>
+                                <option value="corporate">Corporate</option>
+                                <option value="birthday">Birthday</option>
+                                <option value="conference">Conference</option>
+                                <option value="seminar">Seminar</option>
+                                <option value="networking">Networking</option>
+                                <option value="graduation">Graduation</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Start Date</label>
+                            <input x-model="eventForm.date.start" type="datetime-local" required
+                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">End Date</label>
+                            <input x-model="eventForm.date.end" type="datetime-local" required
+                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Expected Attendees</label>
+                            <input x-model="eventForm.attendees.expected" type="number" required
+                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium mb-2">Total Budget (AED)</label>
+                            <input x-model="eventForm.totalBudget" type="number" required
+                                class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Description</label>
+                        <textarea x-model="eventForm.description" rows="3"
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"></textarea>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium mb-2">Venue Address</label>
+                        <input x-model="eventForm.location.address" type="text"
+                            class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                    </div>
+
+                    <div class="flex justify-between">
+                        <button type="button" @click="showCreateEvent = false"
+                            class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                            Cancel
+                        </button>
+                        <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                            Create Event
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Event Details Modal -->
+        <div x-show="showEventDetails" x-cloak
+            class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto"
+                @click.away="showEventDetails = false">
+                <template x-if="selectedEvent">
+                    <div>
+                        <div class="flex justify-between items-start mb-6">
+                            <div>
+                                <h2 class="text-3xl font-bold" x-text="selectedEvent.title"></h2>
+                                <p class="text-gray-600" x-text="selectedEvent.description"></p>
+                            </div>
+                            <button @click="showEventDetails = false" class="text-gray-500 hover:text-gray-700">
+                                <i class="fas fa-times text-xl"></i>
+                            </button>
+                        </div>
+
+                        <!-- Event Info -->
+                        <div class="grid md:grid-cols-2 gap-6 mb-8">
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold mb-3">Event Details</h3>
+                                <div class="space-y-2 text-sm">
+                                    <div><span class="text-gray-600">Date:</span> <span
+                                            x-text="formatDate(selectedEvent.date.start) + ' - ' + formatDate(selectedEvent.date.end)"></span>
+                                    </div>
+                                    <div><span class="text-gray-600">Attendees:</span> <span
+                                            x-text="selectedEvent.attendees.expected"></span></div>
+                                    <div><span class="text-gray-600">Budget:</span> AED <span
+                                            x-text="selectedEvent.totalBudget.toLocaleString()"></span></div>
+                                    <div><span class="text-gray-600">Location:</span> <span
+                                            x-text="selectedEvent.location?.address || 'TBD'"></span></div>
+                                    <div><span class="text-gray-600">Status:</span> <span
+                                            :class="getStatusColor(selectedEvent.status)"
+                                            class="px-2 py-1 rounded text-xs capitalize"
+                                            x-text="selectedEvent.status"></span></div>
+                                    <template x-if="selectedEvent.organizer">
+                                        <div><span class="text-gray-600">Organizer:</span> <span
+                                                x-text="selectedEvent.organizer.name"></span></div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- Budget Breakdown -->
+                            <div class="bg-gray-50 rounded-lg p-4">
+                                <h3 class="font-bold mb-3">Budget Breakdown</h3>
+                                <template
+                                    x-if="selectedEvent.budgetCategories && selectedEvent.budgetCategories.length > 0">
+                                    <div class="space-y-3">
+                                        <template x-for="category in selectedEvent.budgetCategories"
+                                            :key="category.name">
+                                            <div>
+                                                <div class="flex justify-between text-sm mb-1">
+                                                    <span x-text="category.name"></span>
+                                                    <span>AED <span x-text="category.spent.toLocaleString()"></span> /
+                                                        <span
+                                                            x-text="category.allocated.toLocaleString()"></span></span>
+                                                </div>
+                                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                                    <div class="bg-yellow-600 h-2 rounded-full"
+                                                        :style="'width: ' + Math.min((category.spent / category.allocated) * 100, 100) + '%'">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
+                                <template
+                                    x-if="!selectedEvent.budgetCategories || selectedEvent.budgetCategories.length === 0">
+                                    <p class="text-gray-500 text-sm">No budget breakdown set up yet</p>
+                                </template>
+                            </div>
+                        </div>
+
+                        <!-- Actions for Vendors -->
+                        <template x-if="user.userType === 'vendor'">
+                            <div class="mb-6">
+                                <div class="flex space-x-3">
+                                    <button @click="contactEventOrganizer(selectedEvent)"
+                                        class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                                        <i class="fas fa-message mr-2"></i>Contact Organizer
+                                    </button>
+                                    <button @click="expressInterest(selectedEvent)"
+                                        class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+                                        <i class="fas fa-hand-paper mr-2"></i>Express Interest
+                                    </button>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Vendor Requests (for organizers) -->
+                        <template x-if="user.userType === 'organizer'">
+                            <div class="mb-8">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-bold">Vendor Requests</h3>
+                                    <button @click="showVendorRequestModal = true"
+                                        class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                                        <i class="fas fa-plus mr-2"></i>Add Vendor Request
+                                    </button>
+                                </div>
+
+                                <div class="space-y-4">
+                                    <template x-for="request in selectedEvent.vendorRequests" :key="request._id">
+                                        <div class="border rounded-lg p-4">
+                                            <div class="flex justify-between items-start mb-3">
+                                                <div>
+                                                    <h4 class="font-medium"
+                                                        x-text="request.vendor?.businessName || request.vendor?.name">
+                                                    </h4>
+                                                    <p class="text-sm text-gray-600" x-text="request.service"></p>
+                                                </div>
+                                                <span :class="getRequestStatusColor(request.status)"
+                                                    class="px-2 py-1 rounded text-xs capitalize"
+                                                    x-text="request.status"></span>
+                                            </div>
+
+                                            <div class="grid md:grid-cols-3 gap-4 text-sm">
+                                                <div>
+                                                    <span class="text-gray-600">Requested:</span>
+                                                    <span class="ml-1">AED <span
+                                                            x-text="request.requestedPrice?.toLocaleString() || 'N/A'"></span></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-600">Quoted:</span>
+                                                    <span class="ml-1">AED <span
+                                                            x-text="request.quotedPrice?.toLocaleString() || 'N/A'"></span></span>
+                                                </div>
+                                                <div>
+                                                    <span class="text-gray-600">Final:</span>
+                                                    <span class="ml-1">AED <span
+                                                            x-text="request.finalPrice?.toLocaleString() || 'N/A'"></span></span>
+                                                </div>
+                                            </div>
+
+                                            <template x-if="request.notes">
+                                                <p class="text-sm text-gray-600 mt-2" x-text="request.notes"></p>
+                                            </template>
+
+                                            <div class="flex space-x-2 mt-3">
+                                                <button @click="contactVendorFromEvent(request.vendor)"
+                                                    class="bg-green-600 text-white px-3 py-1 rounded text-sm hover:bg-green-700">
+                                                    <i class="fas fa-message mr-1"></i>Message
+                                                </button>
+                                                <template x-if="request.status === 'accepted' && !request.finalPrice">
+                                                    <button @click="finalizeVendorRequest(request)"
+                                                        class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                                        <i class="fas fa-handshake mr-1"></i>Finalize
+                                                    </button>
+                                                </template>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+
+                        <!-- Event Notes -->
+                        <div>
+                            <h3 class="text-xl font-bold mb-4">Event Notes</h3>
+                            <div class="space-y-3 mb-4">
+                                <template x-for="note in selectedEvent.notes" :key="note._id">
+                                    <div class="bg-gray-50 rounded-lg p-3">
+                                        <p x-text="note.content"></p>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            by <span x-text="note.createdBy?.name"></span> - <span
+                                                x-text="formatDate(note.createdAt)"></span>
+                                        </p>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <template x-if="user.userType === 'organizer'">
+                                <div class="flex space-x-2">
+                                    <input x-model="newEventNote" @keyup.enter="addEventNote()" type="text"
+                                        placeholder="Add a note..." class="flex-1 border rounded-lg px-3 py-2">
+                                    <button @click="addEventNote()"
+                                        class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                                        Add Note
+                                    </button>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Continue with remaining modals and script... -->
+        <script>
+            function pocketWatcherApp() {
+                return {
+                    // State
+                    isAuthenticated: false,
+                    user: {},
+                    token: '',
+                    loading: false,
+                    activeTab: 'dashboard',
+
+                    // Modal states
+                    showLogin: false,
+                    showRegister: false,
+                    showCreateEvent: false,
+                    showEventDetails: false,
+                    showVendorDetails: false,
+                    showVenueDetails: false,
+                    showVendorRequestModal: false,
+                    showQuoteModal: false,
+                    showReviewModal: false,
+                    showBudgetModal: false,
+                    showFileUpload: false,
+                    showNotifications: false,
+                    showSearchResults: false,
+                    showAddPortfolio: false,
+
+                    // Selected items
+                    selectedEvent: null,
+                    selectedVendor: null,
+                    selectedVenue: null,
+                    selectedConversation: null,
+
+                    // Forms
+                    loginForm: { email: '', password: '' },
+                    registerForm: {
+                        name: '', email: '', password: '', userType: '',
+                        location: { emirate: '' }, businessName: '', category: '', organizationType: ''
+                    },
+                    eventForm: {
+                        title: '', description: '', eventType: '',
+                        date: { start: '', end: '' },
+                        attendees: { expected: 0 },
+                        totalBudget: 0,
+                        location: { address: '' }
+                    },
+                    vendorRequestForm: {
+                        vendorId: '', service: '', requestedPrice: '', notes: ''
+                    },
+                    quoteForm: {
+                        services: '', totalPrice: '', validUntil: '', terms: ''
+                    },
+                    reviewForm: {
+                        rating: 5, eventId: '', comment: ''
+                    },
+
+                    // Data
+                    events: [],
+                    vendors: [],
+                    venues: [],
+                    availableEvents: [], // Events available for vendors to inquire about
+                    conversations: [],
+                    currentMessages: [],
+                    vendorRequests: [],
+                    vendorReviews: [],
+                    newMessage: '',
+                    newEventNote: '',
+                    newService: '',
+                    analytics: {},
+                    notifications: [],
+                    unreadNotifications: 0,
+                    budgetRecommendations: null,
+
+                    // Search
+                    vendorSearch: { query: '', category: '', emirate: '', priceMin: '', priceMax: '' },
+                    venueSearch: { emirate: '', type: '', minCapacity: '', maxCapacity: '' },
+                    eventSearch: { query: '', eventType: '', emirate: '', minBudget: '' }, // New event search for vendors
+                    globalSearch: { query: '', results: null },
+
+                    // File upload
+                    selectedFile: null,
+
+                    // Toast
+                    toast: { show: false, message: '', type: 'success' },
+
+                    // API Base URL
+                    apiUrl: 'http://localhost:5000/api',
+
+                    // Initialize
+                    async init() {
+                        this.token = localStorage.getItem('token');
+                        if (this.token) {
+                            await this.verifyToken();
+                        }
+
+                        // Set up real-time updates
+                        this.setupRealTimeUpdates();
+                    },
+
+                    setupRealTimeUpdates() {
+                        // Poll for new notifications every 30 seconds
+                        if (this.isAuthenticated) {
+                            setInterval(() => {
+                                this.loadNotifications();
+                                this.loadConversations();
+                            }, 30000);
+                        }
+                    },
+
+                    // Authentication
+                    async login() {
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/auth/login`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(this.loginForm)
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.token = data.token;
+                                this.user = data.user;
+                                this.isAuthenticated = true;
+                                localStorage.setItem('token', this.token);
+                                this.showLogin = false;
+                                this.loginForm = { email: '', password: '' };
+                                await this.loadDashboardData();
+                                this.setupRealTimeUpdates();
+                                this.showToast('Login successful!', 'success');
+                            } else {
+                                this.showToast(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showToast('Login failed', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    async register() {
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/auth/register`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(this.registerForm)
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.token = data.token;
+                                this.user = data.user;
+                                this.isAuthenticated = true;
+                                localStorage.setItem('token', this.token);
+                                this.showRegister = false;
+                                this.resetRegisterForm();
+                                await this.loadDashboardData();
+                                this.setupRealTimeUpdates();
+                                this.showToast('Registration successful!', 'success');
+                            } else {
+                                this.showToast(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showToast('Registration failed', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    // New methods for vendor event functionality
+                    async loadAvailableEvents() {
+                        if (this.user.userType !== 'vendor') return;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/events/available`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.availableEvents = data.events;
+                            }
+                        } catch (error) {
+                            console.error('Failed to load available events:', error);
+                        }
+                    },
+
+                    async searchEvents() {
+                        if (this.user.userType !== 'vendor') return;
+                        try {
+                            const params = new URLSearchParams();
+                            if (this.eventSearch.query) params.append('query', this.eventSearch.query);
+                            if (this.eventSearch.eventType) params.append('eventType', this.eventSearch.eventType);
+                            if (this.eventSearch.emirate) params.append('emirate', this.eventSearch.emirate);
+                            if (this.eventSearch.minBudget) params.append('minBudget', this.eventSearch.minBudget);
+
+                            const response = await fetch(`${this.apiUrl}/events/available?${params}`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.availableEvents = data.events;
+                            }
+                        } catch (error) {
+                            console.error('Failed to search events:', error);
+                        }
+                    },
+
+                    async viewEventDetailsForVendor(event) {
+                        this.selectedEvent = event;
+                        this.showEventDetails = true;
+                    },
+
+                    async contactEventOrganizer(event) {
+                        const organizer = event.organizer;
+
+                        // Start a conversation with the organizer
+                        const existingConversation = this.conversations.find(c =>
+                            c.participant._id === organizer._id
+                        );
+
+                        if (existingConversation) {
+                            this.selectConversation(existingConversation);
+                        } else {
+                            // Create new conversation object
+                            this.selectedConversation = {
+                                participant: organizer
+                            };
+                            this.currentMessages = [];
+                        }
+                        this.activeTab = 'messages';
+                        this.showEventDetails = false;
+                    },
+
+                    async expressInterest(event) {
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/events/${event._id}/express-interest`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify({
+                                    vendorId: this.user.id,
+                                    message: `I'm interested in providing services for your event: ${event.title}`
+                                })
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.showToast('Interest expressed successfully!', 'success');
+                                this.showEventDetails = false;
+                            } else {
+                                this.showToast(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showToast('Failed to express interest', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    async verifyToken() {
+                        try {
+                            const response = await fetch(`${this.apiUrl}/users/profile`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.user = data.user;
+                                this.isAuthenticated = true;
+                                await this.loadDashboardData();
+                            } else {
+                                this.logout();
+                            }
+                        } catch (error) {
+                            this.logout();
+                        }
+                    },
+
+                    logout() {
+                        this.isAuthenticated = false;
+                        this.user = {};
+                        this.token = '';
+                        localStorage.removeItem('token');
+                        this.activeTab = 'dashboard';
+                        this.showToast('Logged out successfully', 'success');
+                    },
+
+                    // Data Loading
+                    async loadDashboardData() {
+                        await Promise.all([
+                            this.loadAnalytics(),
+                            this.loadEvents(),
+                            this.loadVendors(),
+                            this.loadVenues(),
+                            this.loadConversations(),
+                            this.loadNotifications(),
+                            this.loadVendorRequests(),
+                            this.loadAvailableEvents() // Load available events for vendors
+                        ]);
+                    },
+
+                    async loadAnalytics() {
+                        try {
+                            const response = await fetch(`${this.apiUrl}/analytics/dashboard`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                const rawAnalytics = data.analytics;
+
+                                if (this.user.userType === 'organizer') {
+                                    this.analytics = {
+                                        'Total Events': { value: rawAnalytics.totalEvents || 0, label: 'Total Events' },
+                                        'Completed': { value: rawAnalytics.completedEvents || 0, label: 'Completed Events' },
+                                        'Total Budget': { value: `AED ${(rawAnalytics.totalBudget || 0).toLocaleString()}`, label: 'Total Budget' },
+                                        'Savings': { value: `AED ${(rawAnalytics.savings || 0).toLocaleString()}`, label: 'Total Savings' }
+                                    };
+                                } else {
+                                    this.analytics = {
+                                        'Total Requests': { value: rawAnalytics.totalRequests || 0, label: 'Total Requests' },
+                                        'Accepted': { value: rawAnalytics.acceptedRequests || 0, label: 'Accepted Jobs' },
+                                        'Completed': { value: rawAnalytics.completedJobs || 0, label: 'Completed Jobs' },
+                                        'Earnings': { value: `AED ${(rawAnalytics.totalEarnings || 0).toLocaleString()}`, label: 'Total Earnings' }
+                                    };
+                                }
+                            }
+                        } catch (error) {
+                            console.error('Failed to load analytics:', error);
+                        }
+                    },
+
+                    async loadEvents() {
+                        try {
+                            const response = await fetch(`${this.apiUrl}/events`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.events = data.events;
+                            }
+                        } catch (error) {
+                            console.error('Failed to load events:', error);
+                        }
+                    },
+
+                    async loadVendors() {
+                        try {
+                            const response = await fetch(`${this.apiUrl}/vendors`);
+                            const data = await response.json();
+                            if (data.success) {
+                                this.vendors = data.vendors;
+                            }
+                        } catch (error) {
+                            console.error('Failed to load vendors:', error);
+                        }
+                    },
+
+                    async loadVenues() {
+                        try {
+                            const response = await fetch(`${this.apiUrl}/venues`);
+                            const data = await response.json();
+                            if (data.success) {
+                                this.venues = data.venues;
+                            }
+                        } catch (error) {
+                            console.error('Failed to load venues:', error);
+                        }
+                    },
+
+                    async loadConversations() {
+                        if (!this.isAuthenticated) return;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/conversations`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.conversations = data.conversations;
+                            }
+                        } catch (error) {
+                            console.error('Failed to load conversations:', error);
+                        }
+                    },
+
+                    async loadNotifications() {
+                        if (!this.isAuthenticated) return;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/notifications`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.notifications = data.notifications;
+                                this.unreadNotifications = this.notifications.length;
+                            }
+                        } catch (error) {
+                            console.error('Failed to load notifications:', error);
+                        }
+                    },
+
+                    async loadVendorRequests() {
+                        if (!this.isAuthenticated || this.user.userType !== 'vendor') return;
+                        try {
+                            // Load events where vendor has requests
+                            const response = await fetch(`${this.apiUrl}/events`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.vendorRequests = [];
+                                data.events.forEach(event => {
+                                    event.vendorRequests.forEach(request => {
+                                        if (request.vendor._id === this.user.id) {
+                                            this.vendorRequests.push({
+                                                ...request,
+                                                event: event,
+                                                eventId: event._id,
+                                                requestId: request._id
+                                            });
+                                        }
+                                    });
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Failed to load vendor requests:', error);
+                        }
+                    },
+
+                    // Event Management
+                    async createEvent() {
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/events`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify(this.eventForm)
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.events.unshift(data.event);
+                                this.showCreateEvent = false;
+                                this.resetEventForm();
+                                this.showToast('Event created successfully!', 'success');
+                            } else {
+                                this.showToast(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showToast('Failed to create event', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    async viewEventDetails(event) {
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/events/${event._id}`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.selectedEvent = data.event;
+                                this.showEventDetails = true;
+                            }
+                        } catch (error) {
+                            this.showToast('Failed to load event details', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    editEvent(event) {
+                        this.eventForm = {
+                            title: event.title,
+                            description: event.description,
+                            eventType: event.eventType,
+                            date: {
+                                start: event.date.start.slice(0, 16),
+                                end: event.date.end.slice(0, 16)
+                            },
+                            attendees: { expected: event.attendees.expected },
+                            totalBudget: event.totalBudget,
+                            location: { address: event.location?.address || '' }
+                        };
+                        this.selectedEvent = event;
+                        this.showCreateEvent = true;
+                    },
+
+                    // Vendor Management
+                    async viewVendorDetails(vendor) {
+                        this.selectedVendor = vendor;
+                        this.showVendorDetails = true;
+                        await this.loadVendorReviews(vendor._id);
+                    },
+
+                    async loadVendorReviews(vendorId) {
+                        try {
+                            const response = await fetch(`${this.apiUrl}/reviews/${vendorId}`);
+                            const data = await response.json();
+                            if (data.success) {
+                                this.vendorReviews = data.reviews;
+                            }
+                        } catch (error) {
+                            console.error('Failed to load reviews:', error);
+                        }
+                    },
+
+                    async searchVendors() {
+                        try {
+                            const params = new URLSearchParams();
+                            if (this.vendorSearch.query) params.append('query', this.vendorSearch.query);
+                            if (this.vendorSearch.category) params.append('category', this.vendorSearch.category);
+                            if (this.vendorSearch.emirate) params.append('emirate', this.vendorSearch.emirate);
+                            if (this.vendorSearch.priceMin) params.append('priceMin', this.vendorSearch.priceMin);
+                            if (this.vendorSearch.priceMax) params.append('priceMax', this.vendorSearch.priceMax);
+
+                            const response = await fetch(`${this.apiUrl}/vendors?${params}`);
+                            const data = await response.json();
+                            if (data.success) {
+                                this.vendors = data.vendors;
+                            }
+                        } catch (error) {
+                            console.error('Failed to search vendors:', error);
+                        }
+                    },
+
+                    async searchVenues() {
+                        try {
+                            const params = new URLSearchParams();
+                            if (this.venueSearch.emirate) params.append('emirate', this.venueSearch.emirate);
+                            if (this.venueSearch.type) params.append('type', this.venueSearch.type);
+                            if (this.venueSearch.minCapacity) params.append('minCapacity', this.venueSearch.minCapacity);
+                            if (this.venueSearch.maxCapacity) params.append('maxCapacity', this.venueSearch.maxCapacity);
+
+                            const response = await fetch(`${this.apiUrl}/venues?${params}`);
+                            const data = await response.json();
+                            if (data.success) {
+                                this.venues = data.venues;
+                            }
+                        } catch (error) {
+                            console.error('Failed to search venues:', error);
+                        }
+                    },
+
+                    async requestVendor(vendor) {
+                        if (this.events.length === 0) {
+                            this.showToast('Please create an event first', 'error');
+                            return;
+                        }
+                        this.vendorRequestForm.vendorId = vendor._id;
+                        this.showVendorRequestModal = true;
+                    },
+
+                    async sendVendorRequest() {
+                        if (!this.selectedEvent) {
+                            this.showToast('Please select an event first', 'error');
+                            return;
+                        }
+
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/events/${this.selectedEvent._id}/vendor-requests`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify(this.vendorRequestForm)
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.showVendorRequestModal = false;
+                                this.resetVendorRequestForm();
+                                this.showToast('Vendor request sent successfully!', 'success');
+                                await this.loadEvents();
+                            } else {
+                                this.showToast(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showToast('Failed to send vendor request', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    async respondToRequest(request, status) {
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/events/${request.eventId}/vendor-requests/${request.requestId}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify({ status })
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                await this.loadVendorRequests();
+                                this.showToast(`Request ${status} successfully!`, 'success');
+                            } else {
+                                this.showToast(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showToast('Failed to update request', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    // Venue Management
+                    async viewVenueDetails(venue) {
+                        this.selectedVenue = venue;
+                        this.showVenueDetails = true;
+                    },
+
+                    bookVenue(venue) {
+                        this.showToast(`Venue booking would open for: ${venue.name}`, 'success');
+                    },
+
+                    // Profile Management
+                    async updateProfile() {
+                        this.loading = true;
+                        try {
+                            const response = await fetch(`${this.apiUrl}/users/profile`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify(this.user)
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.user = data.user;
+                                this.showToast('Profile updated successfully!', 'success');
+                            } else {
+                                this.showToast(data.message, 'error');
+                            }
+                        } catch (error) {
+                            this.showToast('Failed to update profile', 'error');
+                        }
+                        this.loading = false;
+                    },
+
+                    addService() {
+                        if (!this.newService.trim()) return;
+                        if (!this.user.services) this.user.services = [];
+                        this.user.services.push(this.newService.trim());
+                        this.newService = '';
+                    },
+
+                    removeService(index) {
+                        this.user.services.splice(index, 1);
+                    },
+
+                    // Messaging
+                    async selectConversation(conversation) {
+                        this.selectedConversation = conversation;
+                        await this.loadMessages(conversation.participant._id);
+                    },
+
+                    async loadMessages(recipientId) {
+                        try {
+                            const response = await fetch(`${this.apiUrl}/messages?recipientId=${recipientId}`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.currentMessages = data.messages;
+                                // Scroll to bottom
+                                this.$nextTick(() => {
+                                    const container = document.getElementById('messagesContainer');
+                                    if (container) {
+                                        container.scrollTop = container.scrollHeight;
+                                    }
+                                });
+                            }
+                        } catch (error) {
+                            console.error('Failed to load messages:', error);
+                        }
+                    },
+
+                    async sendMessage() {
+                        if (!this.newMessage.trim() || !this.selectedConversation) return;
+
+                        try {
+                            const response = await fetch(`${this.apiUrl}/messages`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${this.token}`
+                                },
+                                body: JSON.stringify({
+                                    recipientId: this.selectedConversation.participant._id,
+                                    content: this.newMessage
+                                })
+                            });
+
+                            const data = await response.json();
+                            if (data.success) {
+                                this.currentMessages.push(data.message);
+                                this.newMessage = '';
+                                // Scroll to bottom
+                                this.$nextTick(() => {
+                                    const container = document.getElementById('messagesContainer');
+                                    if (container) {
+                                        container.scrollTop = container.scrollHeight;
+                                    }
+                                });
+                            }
+                        } catch (error) {
+                            this.showToast('Failed to send message', 'error');
+                        }
+                    },
+
+                    contactVendor(vendor) {
+                        // Start a conversation with the vendor
+                        const existingConversation = this.conversations.find(c =>
+                            c.participant._id === vendor._id
+                        );
+
+                        if (existingConversation) {
+                            this.selectConversation(existingConversation);
+                        } else {
+                            // Create new conversation object
+                            this.selectedConversation = {
+                                participant: vendor
+                            };
+                            this.currentMessages = [];
+                        }
+                        this.activeTab = 'messages';
+                    },
+
+                    contactVendorFromEvent(vendor) {
+                        this.contactVendor(vendor);
+                        this.showEventDetails = false;
+                    },
+
+                    // Utility Functions
+                    formatDate(dateString) {
+                        return new Date(dateString).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        });
+                    },
+
+                    getStatusColor(status) {
+                        const colors = {
+                            'planning': 'bg-yellow-100 text-yellow-800',
+                            'confirmed': 'bg-blue-100 text-blue-800',
+                            'ongoing': 'bg-green-100 text-green-800',
+                            'completed': 'bg-gray-100 text-gray-800',
+                            'cancelled': 'bg-red-100 text-red-800'
+                        };
+                        return colors[status] || 'bg-gray-100 text-gray-800';
+                    },
+
+                    getRequestStatusColor(status) {
+                        const colors = {
+                            'pending': 'bg-yellow-100 text-yellow-800',
+                            'accepted': 'bg-green-100 text-green-800',
+                            'declined': 'bg-red-100 text-red-800',
+                            'completed': 'bg-blue-100 text-blue-800'
+                        };
+                        return colors[status] || 'bg-gray-100 text-gray-800';
+                    },
+
+                    calculateBudgetUsed(event) {
+                        if (!event.budgetCategories || event.budgetCategories.length === 0) return 0;
+                        const totalSpent = event.budgetCategories.reduce((sum, cat) => sum + (cat.spent || 0), 0);
+                        return Math.round((totalSpent / event.totalBudget) * 100);
+                    },
+
+                    showToast(message, type = 'success') {
+                        this.toast = { show: true, message, type };
+                        setTimeout(() => {
+                            this.toast.show = false;
+                        }, 3000);
+                    },
+
+                    // Form Reset Functions
+                    resetRegisterForm() {
+                        this.registerForm = {
+                            name: '', email: '', password: '', userType: '',
+                            location: { emirate: '' }, businessName: '', category: '', organizationType: ''
+                        };
+                    },
+
+                    resetEventForm() {
+                        this.eventForm = {
+                            title: '', description: '', eventType: '',
+                            date: { start: '', end: '' },
+                            attendees: { expected: 0 },
+                            totalBudget: 0,
+                            location: { address: '' }
+                        };
+                    },
+
+                    resetVendorRequestForm() {
+                        this.vendorRequestForm = {
+                            vendorId: '', service: '', requestedPrice: '', notes: ''
+                        };
+                    }
+                }
+            }
+        </script>
+
+        <!-- Loading Overlay -->
+        <div x-show="loading" x-cloak
+            class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-lg p-8 text-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-600 mx-auto mb-4"></div>
+                <p>Loading...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div x-show="toast.show" x-cloak x-transition:enter="transition ease-out duration-300"
+            x-transition:enter-start="opacity-0 transform translate-y-2"
+            x-transition:enter-end="opacity-100 transform translate-y-0"
+            x-transition:leave="transition ease-in duration-200"
+            x-transition:leave-start="opacity-100 transform translate-y-0"
+            x-transition:leave-end="opacity-0 transform translate-y-2" class="fixed top-20 right-4 z-50">
+            <div :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'"
+                class="text-white px-6 py-3 rounded-lg shadow-lg">
+                <p x-text="toast.message"></p>
+            </div>
+        </div>
+</body>
+
+</html>
