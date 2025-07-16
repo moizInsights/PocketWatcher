@@ -705,7 +705,7 @@
     </template>
 </div>
 
-<!-- Updated Venue Details Modal with Image Gallery -->
+<!-- Venue Details Modal with Image Gallery -->
 <div x-show="showVenueDetails" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
     <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto" @click.away="showVenueDetails = false">
         <template x-if="selectedVenue">
@@ -743,11 +743,11 @@
                                         <!-- Navigation buttons -->
                                         <template x-if="selectedVenue.images.length > 1">
                                             <div class="absolute inset-0 flex items-center justify-between p-4">
-                                                <button @click="currentImage = currentImage > 0 ? currentImage - 1 : selectedVenue.images.length - 1"
+                                                <button @click.stop="currentImage = currentImage > 0 ? currentImage - 1 : selectedVenue.images.length - 1"
                                                         class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70">
                                                     <i class="fas fa-chevron-left"></i>
                                                 </button>
-                                                <button @click="currentImage = currentImage < selectedVenue.images.length - 1 ? currentImage + 1 : 0"
+                                                <button @click.stop="currentImage = currentImage < selectedVenue.images.length - 1 ? currentImage + 1 : 0"
                                                         class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70">
                                                     <i class="fas fa-chevron-right"></i>
                                                 </button>
@@ -824,24 +824,6 @@
                                 <span class="text-sm text-gray-600" x-text="'per ' + selectedVenue.pricing.priceType.replace('_', ' ')"></span>
                             </div>
                         </div>
-
-                        <template x-if="selectedVenue.contact">
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <h3 class="font-bold mb-3">Contact</h3>
-                                <div class="space-y-2 text-sm">
-                                    <template x-if="selectedVenue.contact.manager">
-                                        <div><span class="text-gray-600">Manager:</span> <span x-text="selectedVenue.contact.manager"></span></div>
-                                    </template>
-                                    <template x-if="selectedVenue.contact.phone">
-                                        <div><span class="text-gray-600">Phone:</span> <span x-text="selectedVenue.contact.phone"></span></div>
-                                    </template>
-                                    <template x-if="selectedVenue.contact.email">
-                                        <div><span class="text-gray-600">Email:</span> <span x-text="selectedVenue.contact.email"></span></div>
-                                    </template>
-                                </div>
-                            </div>
-                        </template>
-
                         <div class="space-y-3">
                             <button @click="bookVenue(selectedVenue)" class="w-full bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Venue
