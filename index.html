@@ -1499,99 +1499,169 @@
 
     <!-- Venue Details Modal -->
     <div x-show="showVenueDetails" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto" @click.away="showVenueDetails = false">
-            <template x-if="selectedVenue">
-                <div>
-                    <div class="flex justify-between items-start mb-6">
-                        <div>
-                            <h2 class="text-3xl font-bold" x-text="selectedVenue.name"></h2>
-                            <p class="text-gray-600 capitalize" x-text="selectedVenue.venueType"></p>
-                            <div class="flex items-center mt-2">
-                                <div class="flex star-rating">
-                                    <template x-for="i in 5" :key="i">
-                                        <i :class="i <= selectedVenue.rating.average ? 'fas fa-star' : 'far fa-star'"></i>
+    <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto" @click.away="showVenueDetails = false">
+        <template x-if="selectedVenue">
+            <div>
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 class="text-3xl font-bold" x-text="selectedVenue.name"></h2>
+                        <p class="text-gray-600 capitalize" x-text="selectedVenue.venueType"></p>
+                        <div class="flex items-center mt-2">
+                            <div class="flex star-rating">
+                                <template x-for="i in 5" :key="i">
+                                    <i :class="i <= selectedVenue.rating.average ? 'fas fa-star' : 'far fa-star'"></i>
+                                </template>
+                            </div>
+                            <span class="ml-2 text-gray-600">(<span x-text="selectedVenue.rating.count"></span> reviews)</span>
+                        </div>
+                    </div>
+                    <button @click="showVenueDetails = false" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div class="md:col-span-2 space-y-6">
+                        <!-- FIXED: Dynamic Image Gallery -->
+                        <div x-data="{ currentImage: 0 }" class="space-y-4">
+                            <!-- Check if venue has images -->
+                            <template x-if="selectedVenue.images && selectedVenue.images.length > 0">
+                                <div>
+                                    <!-- Main Image Display -->
+                                    <div class="relative h-64 bg-gray-200 rounded-lg overflow-hidden">
+                                        <img :src="selectedVenue.images[currentImage].url" 
+                                             :alt="selectedVenue.images[currentImage].caption || 'Venue image'"
+                                             class="w-full h-full object-cover">
+                                        
+                                        <!-- Navigation arrows (show only if multiple images) -->
+                                        <template x-if="selectedVenue.images.length > 1">
+                                            <div class="absolute inset-0 flex items-center justify-between p-4">
+                                                <button @click="currentImage = currentImage > 0 ? currentImage - 1 : selectedVenue.images.length - 1"
+                                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
+                                                    <i class="fas fa-chevron-left"></i>
+                                                </button>
+                                                <button @click="currentImage = currentImage < selectedVenue.images.length - 1 ? currentImage + 1 : 0"
+                                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
+                                                    <i class="fas fa-chevron-right"></i>
+                                                </button>
+                                            </div>
+                                        </template>
+                                        
+                                        <!-- Image caption overlay -->
+                                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-transparent to-transparent p-4">
+                                            <p class="text-white text-sm" x-text="selectedVenue.images[currentImage].caption || 'Venue image'"></p>
+                                        </div>
+                                        
+                                        <!-- Image counter -->
+                                        <template x-if="selectedVenue.images.length > 1">
+                                            <div class="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+                                                <span x-text="currentImage + 1"></span>/<span x-text="selectedVenue.images.length"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+                                    
+                                    <!-- Thumbnail strip (show only if multiple images) -->
+                                    <template x-if="selectedVenue.images.length > 1">
+                                        <div class="flex space-x-2 overflow-x-auto pb-2">
+                                            <template x-for="(image, index) in selectedVenue.images" :key="index">
+                                                <button @click="currentImage = index"
+                                                        :class="currentImage === index ? 'ring-2 ring-yellow-500' : 'ring-1 ring-gray-300'"
+                                                        class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden hover:ring-2 hover:ring-yellow-400 transition-all">
+                                                    <img :src="image.url" 
+                                                         :alt="image.caption || 'Venue thumbnail'" 
+                                                         class="w-full h-full object-cover">
+                                                </button>
+                                            </template>
+                                        </div>
                                     </template>
                                 </div>
-                                <span class="ml-2 text-gray-600">(<span x-text="selectedVenue.rating.count"></span> reviews)</span>
-                            </div>
+                            </template>
+                            
+                            <!-- Fallback if no images available -->
+                            <template x-if="!selectedVenue.images || selectedVenue.images.length === 0">
+                                <div class="h-64 bg-gradient-to-br from-yellow-400 to-purple-500 rounded-lg flex items-center justify-center">
+                                    <div class="text-center">
+                                        <i class="fas fa-building text-white text-6xl mb-4"></i>
+                                        <p class="text-white text-lg font-medium">No images available</p>
+                                        <p class="text-white text-sm opacity-75">Contact venue for more photos</p>
+                                    </div>
+                                </div>
+                            </template>
                         </div>
-                        <button @click="showVenueDetails = false" class="text-gray-500 hover:text-gray-700">
-                            <i class="fas fa-times text-xl"></i>
-                        </button>
+
+                        <!-- Description -->
+                        <div>
+                            <h3 class="text-xl font-bold mb-3">Description</h3>
+                            <p class="text-gray-600" x-text="selectedVenue.description"></p>
+                        </div>
+
+                        <!-- Amenities -->
+                        <template x-if="selectedVenue.amenities && selectedVenue.amenities.length > 0">
+                            <div>
+                                <h3 class="text-xl font-bold mb-3">Amenities</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <template x-for="amenity in selectedVenue.amenities" :key="amenity">
+                                        <div class="flex items-center space-x-2">
+                                            <i class="fas fa-check text-green-500"></i>
+                                            <span class="text-sm" x-text="amenity"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
                     </div>
 
-                    <div class="grid md:grid-cols-3 gap-6">
-                        <div class="md:col-span-2 space-y-6">
-                            <!-- Images -->
-                            <div class="h-64 bg-gradient-to-br from-yellow-400 to-purple-500 rounded-lg flex items-center justify-center">
-                                <i class="fas fa-building text-white text-6xl"></i>
+                    <!-- Venue Details Sidebar -->
+                    <div class="space-y-6">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h3 class="font-bold mb-3">Venue Details</h3>
+                            <div class="space-y-2 text-sm">
+                                <div><span class="text-gray-600">Location:</span> <span x-text="selectedVenue.location.emirate"></span></div>
+                                <div><span class="text-gray-600">Address:</span> <span x-text="selectedVenue.location.address"></span></div>
+                                <div><span class="text-gray-600">Capacity:</span> <span x-text="selectedVenue.capacity.minimum + ' - ' + selectedVenue.capacity.maximum + ' guests'"></span></div>
+                                <div><span class="text-gray-600">Type:</span> <span class="capitalize" x-text="selectedVenue.venueType"></span></div>
                             </div>
-
-                            <!-- Description -->
-                            <div>
-                                <h3 class="text-xl font-bold mb-3">Description</h3>
-                                <p class="text-gray-600" x-text="selectedVenue.description"></p>
-                            </div>
-
-                            <!-- Amenities -->
-                            <template x-if="selectedVenue.amenities && selectedVenue.amenities.length > 0">
-                                <div>
-                                    <h3 class="text-xl font-bold mb-3">Amenities</h3>
-                                    <div class="flex flex-wrap gap-2">
-                                        <template x-for="amenity in selectedVenue.amenities" :key="amenity">
-                                            <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm" x-text="amenity"></span>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
                         </div>
 
-                        <!-- Venue Details -->
-                        <div class="space-y-6">
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h3 class="font-bold mb-3">Pricing</h3>
+                            <div class="text-lg font-medium">
+                                AED <span x-text="selectedVenue.pricing.basePrice.toLocaleString()"></span>
+                                <span class="text-sm text-gray-600" x-text="'per ' + selectedVenue.pricing.priceType.replace('_', ' ')"></span>
+                            </div>
+                        </div>
+
+                        <template x-if="selectedVenue.contact">
                             <div class="bg-gray-50 rounded-lg p-4">
-                                <h3 class="font-bold mb-3">Venue Details</h3>
+                                <h3 class="font-bold mb-3">Contact</h3>
                                 <div class="space-y-2 text-sm">
-                                    <div><span class="text-gray-600">Location:</span> <span x-text="selectedVenue.location.emirate"></span></div>
-                                    <div><span class="text-gray-600">Address:</span> <span x-text="selectedVenue.location.address"></span></div>
-                                    <div><span class="text-gray-600">Capacity:</span> <span x-text="selectedVenue.capacity.minimum + ' - ' + selectedVenue.capacity.maximum + ' guests'"></span></div>
-                                    <div><span class="text-gray-600">Type:</span> <span class="capitalize" x-text="selectedVenue.venueType"></span></div>
+                                    <template x-if="selectedVenue.contact.manager">
+                                        <div><span class="text-gray-600">Manager:</span> <span x-text="selectedVenue.contact.manager"></span></div>
+                                    </template>
+                                    <template x-if="selectedVenue.contact.phone">
+                                        <div><span class="text-gray-600">Phone:</span> <span x-text="selectedVenue.contact.phone"></span></div>
+                                    </template>
+                                    <template x-if="selectedVenue.contact.email">
+                                        <div><span class="text-gray-600">Email:</span> <span x-text="selectedVenue.contact.email"></span></div>
+                                    </template>
                                 </div>
                             </div>
+                        </template>
 
-                            <div class="bg-gray-50 rounded-lg p-4">
-                                <h3 class="font-bold mb-3">Pricing</h3>
-                                <div class="text-lg font-medium">
-                                    AED <span x-text="selectedVenue.pricing.basePrice.toLocaleString()"></span>
-                                    <span class="text-sm text-gray-600" x-text="'per ' + selectedVenue.pricing.priceType.replace('_', ' ')"></span>
-                                </div>
-                            </div>
-
-                            <template x-if="selectedVenue.contact">
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <h3 class="font-bold mb-3">Contact</h3>
-                                    <div class="space-y-2 text-sm">
-                                        <template x-if="selectedVenue.contact.manager">
-                                            <div><span class="text-gray-600">Manager:</span> <span x-text="selectedVenue.contact.manager"></span></div>
-                                        </template>
-                                        <template x-if="selectedVenue.contact.phone">
-                                            <div><span class="text-gray-600">Phone:</span> <span x-text="selectedVenue.contact.phone"></span></div>
-                                        </template>
-                                        <template x-if="selectedVenue.contact.email">
-                                            <div><span class="text-gray-600">Email:</span> <span x-text="selectedVenue.contact.email"></span></div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-
+                        <div class="space-y-3">
                             <button @click="bookVenue(selectedVenue)" class="w-full bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700">
                                 <i class="fas fa-calendar-check mr-2"></i>Book Venue
+                            </button>
+                            <button @click="contactVenueManager(selectedVenue)" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700">
+                                <i class="fas fa-phone mr-2"></i>Contact Manager
                             </button>
                         </div>
                     </div>
                 </div>
-            </template>
-        </div>
+            </div>
+        </template>
     </div>
+</div>
 
     <!-- Vendor Request Modal -->
     <div x-show="showVendorRequestModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
