@@ -2489,21 +2489,23 @@
                 },
                 
                 contactVendor(vendor) {
-                  const existingConversation = this.conversations.find(c => 
-                    c.participant._id === vendor._id
-                  );
+                    // Start a conversation with the vendor
+                    const existingConversation = this.conversations.find(c => 
+                        c.participant._id === vendor._id
+                    );
+                    
+                    if (existingConversation) {
+                        this.selectConversation(existingConversation);
+                    } else {
+                        // Create new conversation object
+                        this.selectedConversation = {
+                            participant: vendor
+                        };
+                        this.currentMessages = [];
+                    }
+                    this.activeTab = 'messages';
+                },
                 
-                  if (existingConversation) {
-                    this.selectConversation(existingConversation);
-                  } else {
-                    this.selectedConversation = { participant: vendor };
-                    this.currentMessages = [];
-                    this.loadMessages(vendor._id); // ✅ Add this
-                  }
-                
-                  this.activeTab = 'messages';
-                }
-                                
                 contactVendorFromEvent(vendor) {
                     this.contactVendor(vendor);
                     this.showEventDetails = false;
