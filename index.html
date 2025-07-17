@@ -68,7 +68,7 @@
                             </div>
                         </div>
                     </template>
-
+                    
                     <template x-if="!isAuthenticated">
                         <div class="space-x-2">
                             <button @click="showLogin = true" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
@@ -312,17 +312,22 @@
                                     </div>
                                 </template>
 
-                                <div class="flex space-x-2">
-                                    <button @click="viewEventDetails(event)" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                        View Details
-                                    </button>
-                                    <button @click="editEvent(event)" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
-                                        Edit
-                                    </button>
-                                    <button @click="getBudgetRecommendations(event)" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
-                                        Budget Guide
-                                    </button>
-                                </div>
+                                    <div class="flex space-x-2">
+                                        <button @click="viewEventDetails(event)" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                            View Details
+                                        </button>
+                                        <button @click="editEvent(event)" class="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700">
+                                            Edit
+                                        </button>
+                                        <button @click="getBudgetRecommendations(event)" class="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">
+                                            Budget Guide
+                                        </button>
+                                        <template x-if="event.status === 'completed'">
+                                            <button @click="viewEventReviews(event)" class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+                                                <i class="fas fa-star mr-1"></i>Reviews
+                                            </button>
+                                        </template>
+                                    </div>
                             </div>
                         </template>
                         <template x-if="events.length === 0">
@@ -451,11 +456,11 @@
                                     <div class="grid md:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-sm font-medium mb-2">Price Range (Min AED)</label>
-                                            <input x-model="user.pricing.priceRange.min" type="number" class="w-full border rounded-lg px-3 py-2">
+                                            <input x-model="user.pricing.priceRange.min" @change="updateProfile()" type="number" class="w-full border rounded-lg px-3 py-2">
                                         </div>
                                         <div>
                                             <label class="block text-sm font-medium mb-2">Price Range (Max AED)</label>
-                                            <input x-model="user.pricing.priceRange.max" type="number" class="w-full border rounded-lg px-3 py-2">
+                                            <input x-model="user.pricing.priceRange.max" @change="updateProfile()" type="number" class="w-full border rounded-lg px-3 py-2">
                                         </div>
                                     </div>
                                 </div>
@@ -471,26 +476,74 @@
                                 </div>
                                 <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                                     <template x-for="(work, index) in (user.portfolio || [])" :key="index">
-                                        <div class="border rounded-lg p-4">
-                                            <div class="h-32 bg-gray-200 rounded-lg mb-3 flex items-center justify-center">
-                                                <i class="fas fa-image text-gray-400 text-2xl"></i>
+                                        <div class="border rounded-lg p-4 relative">
+                                            <!-- Remove button -->
+                                            <button @click="removePortfolioItem(index)" class="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                            
+                                            <!-- Image display -->
+                                            <div class="h-32 bg-gray-200 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                                                <template x-if="work.images && work.images.length > 0">
+                                                    <img :src="work.images[0]" :alt="work.title" class="w-full h-full object-cover">
+                                                </template>
+                                                <template x-if="!work.images || work.images.length === 0">
+                                                    <i class="fas fa-image text-gray-400 text-2xl"></i>
+                                                </template>
                                             </div>
+                                            
                                             <h4 class="font-medium" x-text="work.title"></h4>
                                             <p class="text-sm text-gray-600" x-text="work.description"></p>
                                             <p class="text-xs text-gray-500 mt-2" x-text="formatDate(work.date)"></p>
+                                            
+                                            <!-- Multiple images indicator -->
+                                            <template x-if="work.images && work.images.length > 1">
+                                                <div class="flex space-x-1 mt-2">
+                                                    <template x-for="(image, imgIndex) in work.images.slice(0, 3)" :key="imgIndex">
+                                                        <div class="w-8 h-8 bg-gray-200 rounded overflow-hidden">
+                                                            <img :src="image" :alt="`${work.title} ${imgIndex + 1}`" class="w-full h-full object-cover">
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="work.images.length > 3">
+                                                        <div class="w-8 h-8 bg-gray-300 rounded flex items-center justify-center text-xs">
+                                                            +<span x-text="work.images.length - 3"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
                                 </div>
+                                <template x-if="!user.portfolio || user.portfolio.length === 0">
+                                    <div class="text-center text-gray-500 py-8">
+                                        <i class="fas fa-briefcase text-4xl mb-4"></i>
+                                        <p>No portfolio items yet</p>
+                                        <p class="text-sm">Add your best work to showcase your skills</p>
+                                    </div>
+                                </template>
                             </div>
 
                             <!-- Reviews -->
                             <div class="bg-white rounded-lg card-shadow p-6">
-                                <h3 class="text-xl font-bold mb-4">Customer Reviews</h3>
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-xl font-bold">Customer Reviews</h3>
+                                    <div class="text-right">
+                                        <div class="flex items-center">
+                                            <div class="flex star-rating mr-2">
+                                                <template x-for="i in 5" :key="i">
+                                                    <i :class="i <= user.rating.average ? 'fas fa-star' : 'far fa-star'"></i>
+                                                </template>
+                                            </div>
+                                            <span class="font-medium" x-text="user.rating.average.toFixed(1)"></span>
+                                            <span class="text-gray-500 ml-1">(<span x-text="user.rating.count"></span> reviews)</span>
+                                        </div>
+                                    </div>
+                                </div>
                                 <div class="space-y-4">
                                     <template x-for="review in vendorReviews" :key="review._id">
                                         <div class="border rounded-lg p-4">
                                             <div class="flex items-start justify-between mb-2">
-                                                <div>
+                                                <div class="flex-1">
                                                     <div class="flex items-center mb-1">
                                                         <div class="flex star-rating">
                                                             <template x-for="i in 5" :key="i">
@@ -498,16 +551,53 @@
                                                             </template>
                                                         </div>
                                                         <span class="ml-2 font-medium" x-text="review.reviewer.name"></span>
+                                                        <template x-if="review.event">
+                                                            <span class="ml-2 text-sm text-gray-500">• <span x-text="review.event.title"></span></span>
+                                                        </template>
                                                     </div>
                                                     <p class="text-gray-600" x-text="review.comment"></p>
                                                 </div>
                                                 <span class="text-sm text-gray-500" x-text="formatDate(review.createdAt)"></span>
                                             </div>
+                                            <!-- Vendor Response -->
                                             <template x-if="review.response">
-                                                <div class="mt-3 bg-gray-50 rounded p-3">
-                                                    <p class="text-sm"><strong>Response:</strong> <span x-text="review.response.content"></span></p>
+                                                <div class="mt-3 bg-yellow-50 border-l-4 border-yellow-400 rounded p-3">
+                                                    <div class="flex items-center mb-1">
+                                                        <i class="fas fa-reply text-yellow-600 mr-2"></i>
+                                                        <span class="font-medium text-yellow-800">Your Response</span>
+                                                        <span class="text-sm text-yellow-600 ml-2" x-text="formatDate(review.response.respondedAt)"></span>
+                                                    </div>
+                                                    <p class="text-yellow-800" x-text="review.response.content"></p>
                                                 </div>
                                             </template>
+                                            <!-- Response form -->
+                                            <template x-if="!review.response">
+                                                <div class="mt-3">
+                                                    <div x-data="{ showResponseForm: false }">
+                                                        <button @click="showResponseForm = !showResponseForm" class="text-yellow-600 hover:text-yellow-700 text-sm">
+                                                            <i class="fas fa-reply mr-1"></i>Respond to review
+                                                        </button>
+                                                        <div x-show="showResponseForm" x-cloak class="mt-2">
+                                                            <textarea x-model="review.responseText" rows="2" placeholder="Write your response..." class="w-full border rounded-lg px-3 py-2 text-sm"></textarea>
+                                                            <div class="flex space-x-2 mt-2">
+                                                                <button @click="respondToReview(review)" class="bg-yellow-600 text-white px-3 py-1 rounded text-sm hover:bg-yellow-700">
+                                                                    Send Response
+                                                                </button>
+                                                                <button @click="showResponseForm = false" class="bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-400">
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </template>
+                                    <template x-if="vendorReviews.length === 0">
+                                        <div class="text-center text-gray-500 py-8">
+                                            <i class="fas fa-star text-4xl mb-4 opacity-50"></i>
+                                            <h4 class="font-medium mb-2">No reviews yet</h4>
+                                            <p class="text-sm">Your customer reviews will appear here</p>
                                         </div>
                                     </template>
                                 </div>
@@ -618,223 +708,93 @@
 
                     <!-- Venue List -->
                     <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <template x-for="venue in venues" :key="venue._id">
-        <div class="bg-white rounded-lg card-shadow overflow-hidden hover:shadow-lg transition-shadow">
-            <!-- Venue Image Carousel -->
-            <div class="relative h-48 bg-gray-200" x-data="{ currentImage: 0 }">
-                <template x-if="venue.images && venue.images.length > 0">
-                    <div class="relative h-full overflow-hidden">
-                        <img :src="venue.images[currentImage].url" 
-                             :alt="venue.images[currentImage].caption"
-                             class="w-full h-full object-cover">
-                        
-                        <!-- Image Navigation -->
-                        <template x-if="venue.images.length > 1">
-                            <div class="absolute inset-0 flex items-center justify-between p-2">
-                                <button @click="currentImage = currentImage > 0 ? currentImage - 1 : venue.images.length - 1"
-                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
-                                    <i class="fas fa-chevron-left"></i>
-                                </button>
-                                <button @click="currentImage = currentImage < venue.images.length - 1 ? currentImage + 1 : 0"
-                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
-                                    <i class="fas fa-chevron-right"></i>
-                                </button>
-                            </div>
-                        </template>
-                        
-                        <!-- Image Indicators -->
-                        <template x-if="venue.images.length > 1">
-                            <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
-                                <template x-for="(image, index) in venue.images" :key="index">
-                                    <button @click="currentImage = index"
-                                            :class="currentImage === index ? 'bg-white' : 'bg-white bg-opacity-50'"
-                                            class="w-2 h-2 rounded-full transition-all">
-                                    </button>
-                                </template>
-                            </div>
-                        </template>
-                    </div>
-                </template>
-                
-                <!-- Fallback if no images -->
-                <template x-if="!venue.images || venue.images.length === 0">
-                    <div class="h-full bg-gradient-to-br from-yellow-400 to-purple-500 flex items-center justify-center">
-                        <i class="fas fa-building text-white text-4xl"></i>
-                    </div>
-                </template>
-            </div>
-            
-            <div class="p-6">
-                <div class="flex items-start justify-between mb-2">
-                    <h3 class="text-lg font-bold" x-text="venue.name"></h3>
-                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm" x-text="venue.location.emirate"></span>
-                </div>
-                
-                <p class="text-gray-600 text-sm mb-3" x-text="venue.description"></p>
-                
-                <div class="space-y-2 text-sm">
-                    <div class="flex items-center">
-                        <i class="fas fa-users text-gray-400 w-4"></i>
-                        <span class="ml-2" x-text="venue.capacity.minimum + ' - ' + venue.capacity.maximum + ' guests'"></span>
-                    </div>
-                    <div class="flex items-center">
-                        <i class="fas fa-dollar-sign text-gray-400 w-4"></i>
-                        <span class="ml-2" x-text="'AED ' + venue.pricing.basePrice.toLocaleString() + ' ' + venue.pricing.priceType.replace('_', ' ')"></span>
-                    </div>
-                    <div class="flex items-center">
-                        <div class="flex star-rating">
-                            <template x-for="i in 5" :key="i">
-                                <i :class="i <= venue.rating.average ? 'fas fa-star' : 'far fa-star'" class="text-xs"></i>
-                            </template>
-                        </div>
-                        <span class="text-gray-500 ml-2">(<span x-text="venue.rating.count"></span>)</span>
-                    </div>
-                    <template x-if="venue.amenities && venue.amenities.length > 0">
-                        <div class="flex items-start">
-                            <i class="fas fa-check text-gray-400 w-4 mt-0.5"></i>
-                            <span class="ml-2" x-text="venue.amenities.slice(0, 3).join(', ')"></span>
-                        </div>
-                    </template>
-                </div>
-
-                <button @click="viewVenueDetails(venue)" class="w-full mt-4 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
-                    View Details
-                </button>
-            </div>
-        </div>
-    </template>
-</div>
-
-<!-- Venue Details Modal with Image Gallery -->
-<div x-show="showVenueDetails" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
-    <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto" @click.away="showVenueDetails = false">
-        <template x-if="selectedVenue">
-            <div>
-                <div class="flex justify-between items-start mb-6">
-                    <div>
-                        <h2 class="text-3xl font-bold" x-text="selectedVenue.name"></h2>
-                        <p class="text-gray-600 capitalize" x-text="selectedVenue.venueType"></p>
-                        <div class="flex items-center mt-2">
-                            <div class="flex star-rating">
-                                <template x-for="i in 5" :key="i">
-                                    <i :class="i <= selectedVenue.rating.average ? 'fas fa-star' : 'far fa-star'"></i>
-                                </template>
-                            </div>
-                            <span class="ml-2 text-gray-600">(<span x-text="selectedVenue.rating.count"></span> reviews)</span>
-                        </div>
-                    </div>
-                    <button @click="showVenueDetails = false" class="text-gray-500 hover:text-gray-700">
-                        <i class="fas fa-times text-xl"></i>
-                    </button>
-                </div>
-
-                <div class="grid md:grid-cols-3 gap-6">
-                    <div class="md:col-span-2 space-y-6">
-                        <!-- Image Gallery -->
-                        <div x-data="{ currentImage: 0 }" class="space-y-4">
-                            <template x-if="selectedVenue.images && selectedVenue.images.length > 0">
-                                <div>
-                                    <!-- Main Image -->
-                                    <div class="relative h-64 bg-gray-200 rounded-lg overflow-hidden">
-                                        <img :src="selectedVenue.images[currentImage].url" 
-                                             :alt="selectedVenue.images[currentImage].caption"
-                                             class="w-full h-full object-cover">
-                                        
-                                        <!-- Navigation buttons -->
-                                        <template x-if="selectedVenue.images.length > 1">
-                                            <div class="absolute inset-0 flex items-center justify-between p-4">
-                                                <button @click.stop="currentImage = currentImage > 0 ? currentImage - 1 : selectedVenue.images.length - 1"
-                                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70">
-                                                    <i class="fas fa-chevron-left"></i>
-                                                </button>
-                                                <button @click.stop="currentImage = currentImage < selectedVenue.images.length - 1 ? currentImage + 1 : 0"
-                                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70">
-                                                    <i class="fas fa-chevron-right"></i>
-                                                </button>
-                                            </div>
-                                        </template>
-                                        
-                                        <!-- Image caption -->
-                                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
-                                            <p class="text-white text-sm" x-text="selectedVenue.images[currentImage].caption"></p>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Thumbnail Strip -->
-                                    <template x-if="selectedVenue.images.length > 1">
-                                        <div class="flex space-x-2 overflow-x-auto pb-2">
-                                            <template x-for="(image, index) in selectedVenue.images" :key="index">
-                                                <button @click="currentImage = index"
-                                                        :class="currentImage === index ? 'ring-2 ring-yellow-500' : 'ring-1 ring-gray-300'"
-                                                        class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden">
-                                                    <img :src="image.url" :alt="image.caption" class="w-full h-full object-cover">
-                                                </button>
+                        <template x-for="venue in venues" :key="venue._id">
+                            <div class="bg-white rounded-lg card-shadow overflow-hidden hover:shadow-lg transition-shadow">
+                                <!-- Venue Image Carousel -->
+                                <div class="relative h-48 bg-gray-200" x-data="{ currentImage: 0 }">
+                                    <template x-if="venue.images && venue.images.length > 0">
+                                        <div class="relative h-full overflow-hidden">
+                                            <img :src="venue.images[currentImage].url" 
+                                                 :alt="venue.images[currentImage].caption"
+                                                 class="w-full h-full object-cover">
+                                            
+                                            <!-- Image Navigation -->
+                                            <template x-if="venue.images.length > 1">
+                                                <div class="absolute inset-0 flex items-center justify-between p-2">
+                                                    <button @click="currentImage = currentImage > 0 ? currentImage - 1 : venue.images.length - 1"
+                                                            class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
+                                                        <i class="fas fa-chevron-left"></i>
+                                                    </button>
+                                                    <button @click="currentImage = currentImage < venue.images.length - 1 ? currentImage + 1 : 0"
+                                                            class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
+                                                        <i class="fas fa-chevron-right"></i>
+                                                    </button>
+                                                </div>
+                                            </template>
+                                            
+                                            <!-- Image Indicators -->
+                                            <template x-if="venue.images.length > 1">
+                                                <div class="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                                                    <template x-for="(image, index) in venue.images" :key="index">
+                                                        <button @click="currentImage = index"
+                                                                :class="currentImage === index ? 'bg-white' : 'bg-white bg-opacity-50'"
+                                                                class="w-2 h-2 rounded-full transition-all">
+                                                        </button>
+                                                    </template>
+                                                </div>
                                             </template>
                                         </div>
                                     </template>
-                                </div>
-                            </template>
-                            
-                            <!-- Fallback if no images -->
-                            <template x-if="!selectedVenue.images || selectedVenue.images.length === 0">
-                                <div class="h-64 bg-gradient-to-br from-yellow-400 to-purple-500 rounded-lg flex items-center justify-center">
-                                    <i class="fas fa-building text-white text-6xl"></i>
-                                </div>
-                            </template>
-                        </div>
-
-                        <!-- Description -->
-                        <div>
-                            <h3 class="text-xl font-bold mb-3">Description</h3>
-                            <p class="text-gray-600" x-text="selectedVenue.description"></p>
-                        </div>
-
-                        <!-- Amenities -->
-                        <template x-if="selectedVenue.amenities && selectedVenue.amenities.length > 0">
-                            <div>
-                                <h3 class="text-xl font-bold mb-3">Amenities</h3>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <template x-for="amenity in selectedVenue.amenities" :key="amenity">
-                                        <div class="flex items-center space-x-2">
-                                            <i class="fas fa-check text-green-500"></i>
-                                            <span class="text-sm" x-text="amenity"></span>
+                                    
+                                    <!-- Fallback if no images -->
+                                    <template x-if="!venue.images || venue.images.length === 0">
+                                        <div class="h-full bg-gradient-to-br from-yellow-400 to-purple-500 flex items-center justify-center">
+                                            <i class="fas fa-building text-white text-4xl"></i>
                                         </div>
                                     </template>
+                                </div>
+                                
+                                <div class="p-6">
+                                    <div class="flex items-start justify-between mb-2">
+                                        <h3 class="text-lg font-bold" x-text="venue.name"></h3>
+                                        <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm" x-text="venue.location.emirate"></span>
+                                    </div>
+                                    
+                                    <p class="text-gray-600 text-sm mb-3" x-text="venue.description"></p>
+                                    
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-users text-gray-400 w-4"></i>
+                                            <span class="ml-2" x-text="venue.capacity.minimum + ' - ' + venue.capacity.maximum + ' guests'"></span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-dollar-sign text-gray-400 w-4"></i>
+                                            <span class="ml-2" x-text="'AED ' + venue.pricing.basePrice.toLocaleString() + ' ' + venue.pricing.priceType.replace('_', ' ')"></span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <div class="flex star-rating">
+                                                <template x-for="i in 5" :key="i">
+                                                    <i :class="i <= venue.rating.average ? 'fas fa-star' : 'far fa-star'" class="text-xs"></i>
+                                                </template>
+                                            </div>
+                                            <span class="text-gray-500 ml-2">(<span x-text="venue.rating.count"></span>)</span>
+                                        </div>
+                                        <template x-if="venue.amenities && venue.amenities.length > 0">
+                                            <div class="flex items-start">
+                                                <i class="fas fa-check text-gray-400 w-4 mt-0.5"></i>
+                                                <span class="ml-2" x-text="venue.amenities.slice(0, 3).join(', ')"></span>
+                                            </div>
+                                        </template>
+                                    </div>
+
+                                    <button @click="viewVenueDetails(venue)" class="w-full mt-4 bg-yellow-600 text-white px-4 py-2 rounded hover:bg-yellow-700">
+                                        View Details
+                                    </button>
                                 </div>
                             </div>
                         </template>
                     </div>
-
-                    <!-- Venue Details Sidebar -->
-                    <div class="space-y-6">
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h3 class="font-bold mb-3">Venue Details</h3>
-                            <div class="space-y-2 text-sm">
-                                <div><span class="text-gray-600">Location:</span> <span x-text="selectedVenue.location.emirate"></span></div>
-                                <div><span class="text-gray-600">Address:</span> <span x-text="selectedVenue.location.address"></span></div>
-                                <div><span class="text-gray-600">Capacity:</span> <span x-text="selectedVenue.capacity.minimum + ' - ' + selectedVenue.capacity.maximum + ' guests'"></span></div>
-                                <div><span class="text-gray-600">Type:</span> <span class="capitalize" x-text="selectedVenue.venueType"></span></div>
-                            </div>
-                        </div>
-
-                        <div class="bg-gray-50 rounded-lg p-4">
-                            <h3 class="font-bold mb-3">Pricing</h3>
-                            <div class="text-lg font-medium">
-                                AED <span x-text="selectedVenue.pricing.basePrice.toLocaleString()"></span>
-                                <span class="text-sm text-gray-600" x-text="'per ' + selectedVenue.pricing.priceType.replace('_', ' ')"></span>
-                            </div>
-                        </div>
-                        <div class="space-y-3">
-                            <button @click="bookVenue(selectedVenue)" class="w-full bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700">
-                                <i class="fas fa-calendar-check mr-2"></i>Book Venue
-                            </button>
-                        </div>
-                    </div>
                 </div>
-            </div>
-        </template>
-    </div>
-</div>
 
                 <!-- Messages Tab -->
                 <div x-show="activeTab === 'messages'" x-cloak>
@@ -1030,8 +990,7 @@
         </template>
     </div>
 
-    <!-- Modals -->
-    
+    <!-- All Modals and components remain the same as in original file... -->
     <!-- Login Modal -->
     <div x-show="showLogin" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4" @click.away="showLogin = false">
@@ -1401,27 +1360,75 @@
 
                             <!-- Reviews -->
                             <div>
-                                <h3 class="text-xl font-bold mb-3">Reviews</h3>
-                                <div class="space-y-4">
+                                <h3 class="text-xl font-bold mb-3">Customer Reviews</h3>
+                                <template x-if="vendorReviews.length > 0">
+                                    <div class="mb-4 p-4 bg-gray-50 rounded-lg">
+                                        <div class="flex items-center justify-between">
+                                            <div class="flex items-center">
+                                                <div class="flex star-rating text-lg mr-3">
+                                                    <template x-for="i in 5" :key="i">
+                                                        <i :class="i <= selectedVendor.rating.average ? 'fas fa-star' : 'far fa-star'"></i>
+                                                    </template>
+                                                </div>
+                                                <span class="font-bold text-lg" x-text="selectedVendor.rating.average.toFixed(1)"></span>
+                                                <span class="text-gray-600 ml-2">out of 5</span>
+                                            </div>
+                                            <div class="text-sm text-gray-600">
+                                                Based on <span x-text="selectedVendor.rating.count"></span> reviews
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                                <div class="space-y-4 max-h-96 overflow-y-auto">
                                     <template x-for="review in vendorReviews" :key="review._id">
                                         <div class="border rounded-lg p-4">
                                             <div class="flex items-start justify-between mb-2">
-                                                <div>
-                                                    <div class="flex items-center mb-1">
-                                                        <div class="flex star-rating">
-                                                            <template x-for="i in 5" :key="i">
-                                                                <i :class="i <= review.rating ? 'fas fa-star' : 'far fa-star'"></i>
+                                                <div class="flex-1">
+                                                    <div class="flex items-center mb-2">
+                                                        <div class="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center text-white font-bold mr-3">
+                                                            <span x-text="review.reviewer.name.charAt(0).toUpperCase()"></span>
+                                                        </div>
+                                                        <div>
+                                                            <div class="flex items-center">
+                                                                <div class="flex star-rating mr-2">
+                                                                    <template x-for="i in 5" :key="i">
+                                                                        <i :class="i <= review.rating ? 'fas fa-star' : 'far fa-star'"></i>
+                                                                    </template>
+                                                                </div>
+                                                                <span class="font-medium" x-text="review.reviewer.name"></span>
+                                                            </div>
+                                                            <template x-if="review.event">
+                                                                <div class="text-sm text-gray-500">
+                                                                    Event: <span x-text="review.event.title"></span>
+                                                                </div>
                                                             </template>
                                                         </div>
-                                                        <span class="ml-2 font-medium" x-text="review.reviewer.name"></span>
                                                     </div>
-                                                    <p class="text-gray-600" x-text="review.comment"></p>
+                                                    <p class="text-gray-600 mb-2" x-text="review.comment"></p>
+                                                    <div class="text-xs text-gray-500" x-text="formatDate(review.createdAt)"></div>
                                                 </div>
-                                                <span class="text-sm text-gray-500" x-text="formatDate(review.createdAt)"></span>
                                             </div>
+                                            <!-- Vendor Response -->
+                                            <template x-if="review.response">
+                                                <div class="mt-3 bg-blue-50 border-l-4 border-blue-400 rounded p-3">
+                                                    <div class="flex items-center mb-1">
+                                                        <i class="fas fa-reply text-blue-600 mr-2"></i>
+                                                        <span class="font-medium text-blue-800">Business Response</span>
+                                                        <span class="text-sm text-blue-600 ml-2" x-text="formatDate(review.response.respondedAt)"></span>
+                                                    </div>
+                                                    <p class="text-blue-800" x-text="review.response.content"></p>
+                                                </div>
+                                            </template>
                                         </div>
                                     </template>
                                 </div>
+                                <template x-if="vendorReviews.length === 0">
+                                    <div class="text-center text-gray-500 py-8">
+                                        <i class="fas fa-star text-4xl mb-4 opacity-50"></i>
+                                        <h4 class="font-medium mb-2">No reviews yet</h4>
+                                        <p class="text-sm">Be the first to review this vendor!</p>
+                                    </div>
+                                </template>
                             </div>
                         </div>
 
@@ -1463,10 +1470,15 @@
                                 <button @click="requestVendor(selectedVendor)" class="w-full bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700">
                                     <i class="fas fa-handshake mr-2"></i>Request Service
                                 </button>
-                                <template x-if="user.userType === 'organizer'">
+                                <template x-if="user.userType === 'organizer' && getCompletedEventsWithVendor(selectedVendor._id).length > 0">
                                     <button @click="showReviewModal = true" class="w-full bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700">
                                         <i class="fas fa-star mr-2"></i>Write Review
                                     </button>
+                                </template>
+                                <template x-if="user.userType === 'organizer' && getCompletedEventsWithVendor(selectedVendor._id).length === 0">
+                                    <div class="w-full bg-gray-300 text-gray-500 px-4 py-3 rounded-lg text-center">
+                                        <i class="fas fa-info-circle mr-2"></i>Complete an event to review
+                                    </div>
                                 </template>
                             </div>
                         </div>
@@ -1477,10 +1489,8 @@
     </div>
 
     <!-- Venue Details Modal -->
-    <div x-show="showVenueDetails" x-cloak
-        class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto"
-            @click.away="showVenueDetails = false">
+    <div x-show="showVenueDetails" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-4xl w-full mx-4 max-h-screen overflow-y-auto" @click.away="showVenueDetails = false">
             <template x-if="selectedVenue">
                 <div>
                     <div class="flex justify-between items-start mb-6">
@@ -1493,97 +1503,75 @@
                                         <i :class="i <= selectedVenue.rating.average ? 'fas fa-star' : 'far fa-star'"></i>
                                     </template>
                                 </div>
-                                <span class="ml-2 text-gray-600">(<span x-text="selectedVenue.rating.count"></span>
-                                    reviews)</span>
+                                <span class="ml-2 text-gray-600">(<span x-text="selectedVenue.rating.count"></span> reviews)</span>
                             </div>
                         </div>
                         <button @click="showVenueDetails = false" class="text-gray-500 hover:text-gray-700">
                             <i class="fas fa-times text-xl"></i>
                         </button>
                     </div>
-    
+
                     <div class="grid md:grid-cols-3 gap-6">
                         <div class="md:col-span-2 space-y-6">
-                            <!-- FIXED: Dynamic Image Gallery -->
+                            <!-- Image Gallery -->
                             <div x-data="{ currentImage: 0 }" class="space-y-4">
-                                <!-- Check if venue has images -->
                                 <template x-if="selectedVenue.images && selectedVenue.images.length > 0">
                                     <div>
-                                        <!-- Main Image Display -->
+                                        <!-- Main Image -->
                                         <div class="relative h-64 bg-gray-200 rounded-lg overflow-hidden">
-                                            <img :src="selectedVenue.images[currentImage].url"
-                                                :alt="selectedVenue.images[currentImage].caption || 'Venue image'"
-                                                class="w-full h-full object-cover">
-    
-                                            <!-- Navigation arrows (show only if multiple images) -->
+                                            <img :src="selectedVenue.images[currentImage].url" 
+                                                 :alt="selectedVenue.images[currentImage].caption"
+                                                 class="w-full h-full object-cover">
+                                            
+                                            <!-- Navigation buttons -->
                                             <template x-if="selectedVenue.images.length > 1">
                                                 <div class="absolute inset-0 flex items-center justify-between p-4">
-                                                    <button
-                                                        @click="currentImage = currentImage > 0 ? currentImage - 1 : selectedVenue.images.length - 1"
-                                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
+                                                    <button @click="currentImage = currentImage > 0 ? currentImage - 1 : selectedVenue.images.length - 1"
+                                                            class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70">
                                                         <i class="fas fa-chevron-left"></i>
                                                     </button>
-                                                    <button
-                                                        @click="currentImage = currentImage < selectedVenue.images.length - 1 ? currentImage + 1 : 0"
-                                                        class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70 transition-opacity">
+                                                    <button @click="currentImage = currentImage < selectedVenue.images.length - 1 ? currentImage + 1 : 0"
+                                                            class="bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-70">
                                                         <i class="fas fa-chevron-right"></i>
                                                     </button>
                                                 </div>
                                             </template>
-    
-                                            <!-- Image caption overlay -->
-                                            <div
-                                                class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black via-transparent to-transparent p-4">
-                                                <p class="text-white text-sm"
-                                                    x-text="selectedVenue.images[currentImage].caption || 'Venue image'">
-                                                </p>
+                                            
+                                            <!-- Image caption -->
+                                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black to-transparent p-4">
+                                                <p class="text-white text-sm" x-text="selectedVenue.images[currentImage].caption"></p>
                                             </div>
-    
-                                            <!-- Image counter -->
-                                            <template x-if="selectedVenue.images.length > 1">
-                                                <div
-                                                    class="absolute top-4 right-4 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
-                                                    <span x-text="currentImage + 1"></span>/<span
-                                                        x-text="selectedVenue.images.length"></span>
-                                                </div>
-                                            </template>
                                         </div>
-    
-                                        <!-- Thumbnail strip (show only if multiple images) -->
+                                        
+                                        <!-- Thumbnail Strip -->
                                         <template x-if="selectedVenue.images.length > 1">
                                             <div class="flex space-x-2 overflow-x-auto pb-2">
                                                 <template x-for="(image, index) in selectedVenue.images" :key="index">
                                                     <button @click="currentImage = index"
-                                                        :class="currentImage === index ? 'ring-2 ring-yellow-500' : 'ring-1 ring-gray-300'"
-                                                        class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden hover:ring-2 hover:ring-yellow-400 transition-all">
-                                                        <img :src="image.url" :alt="image.caption || 'Venue thumbnail'"
-                                                            class="w-full h-full object-cover">
+                                                            :class="currentImage === index ? 'ring-2 ring-yellow-500' : 'ring-1 ring-gray-300'"
+                                                            class="flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden">
+                                                        <img :src="image.url" :alt="image.caption" class="w-full h-full object-cover">
                                                     </button>
                                                 </template>
                                             </div>
                                         </template>
                                     </div>
                                 </template>
-    
-                                <!-- Fallback if no images available -->
+                                
+                                <!-- Fallback if no images -->
                                 <template x-if="!selectedVenue.images || selectedVenue.images.length === 0">
-                                    <div
-                                        class="h-64 bg-gradient-to-br from-yellow-400 to-purple-500 rounded-lg flex items-center justify-center">
-                                        <div class="text-center">
-                                            <i class="fas fa-building text-white text-6xl mb-4"></i>
-                                            <p class="text-white text-lg font-medium">No images available</p>
-                                            <p class="text-white text-sm opacity-75">Contact venue for more photos</p>
-                                        </div>
+                                    <div class="h-64 bg-gradient-to-br from-yellow-400 to-purple-500 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-building text-white text-6xl"></i>
                                     </div>
                                 </template>
                             </div>
-    
+
                             <!-- Description -->
                             <div>
                                 <h3 class="text-xl font-bold mb-3">Description</h3>
                                 <p class="text-gray-600" x-text="selectedVenue.description"></p>
                             </div>
-    
+
                             <!-- Amenities -->
                             <template x-if="selectedVenue.amenities && selectedVenue.amenities.length > 0">
                                 <div>
@@ -1599,60 +1587,32 @@
                                 </div>
                             </template>
                         </div>
-    
+
                         <!-- Venue Details Sidebar -->
                         <div class="space-y-6">
                             <div class="bg-gray-50 rounded-lg p-4">
                                 <h3 class="font-bold mb-3">Venue Details</h3>
                                 <div class="space-y-2 text-sm">
-                                    <div><span class="text-gray-600">Location:</span> <span
-                                            x-text="selectedVenue.location.emirate"></span></div>
-                                    <div><span class="text-gray-600">Address:</span> <span
-                                            x-text="selectedVenue.location.address"></span></div>
-                                    <div><span class="text-gray-600">Capacity:</span> <span
-                                            x-text="selectedVenue.capacity.minimum + ' - ' + selectedVenue.capacity.maximum + ' guests'"></span>
-                                    </div>
-                                    <div><span class="text-gray-600">Type:</span> <span class="capitalize"
-                                            x-text="selectedVenue.venueType"></span></div>
+                                    <div><span class="text-gray-600">Location:</span> <span x-text="selectedVenue.location.emirate"></span></div>
+                                    <div><span class="text-gray-600">Address:</span> <span x-text="selectedVenue.location.address"></span></div>
+                                    <div><span class="text-gray-600">Capacity:</span> <span x-text="selectedVenue.capacity.minimum + ' - ' + selectedVenue.capacity.maximum + ' guests'"></span></div>
+                                    <div><span class="text-gray-600">Type:</span> <span class="capitalize" x-text="selectedVenue.venueType"></span></div>
                                 </div>
                             </div>
-    
+
                             <div class="bg-gray-50 rounded-lg p-4">
                                 <h3 class="font-bold mb-3">Pricing</h3>
                                 <div class="text-lg font-medium">
                                     AED <span x-text="selectedVenue.pricing.basePrice.toLocaleString()"></span>
-                                    <span class="text-sm text-gray-600"
-                                        x-text="'per ' + selectedVenue.pricing.priceType.replace('_', ' ')"></span>
+                                    <span class="text-sm text-gray-600" x-text="'per ' + selectedVenue.pricing.priceType.replace('_', ' ')"></span>
                                 </div>
                             </div>
-    
-                            <template x-if="selectedVenue.contact">
-                                <div class="bg-gray-50 rounded-lg p-4">
-                                    <h3 class="font-bold mb-3">Contact</h3>
-                                    <div class="space-y-2 text-sm">
-                                        <template x-if="selectedVenue.contact.manager">
-                                            <div><span class="text-gray-600">Manager:</span> <span
-                                                    x-text="selectedVenue.contact.manager"></span></div>
-                                        </template>
-                                        <template x-if="selectedVenue.contact.phone">
-                                            <div><span class="text-gray-600">Phone:</span> <span
-                                                    x-text="selectedVenue.contact.phone"></span></div>
-                                        </template>
-                                        <template x-if="selectedVenue.contact.email">
-                                            <div><span class="text-gray-600">Email:</span> <span
-                                                    x-text="selectedVenue.contact.email"></span></div>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
-    
+                            
                             <div class="space-y-3">
-                                <button @click="bookVenue(selectedVenue)"
-                                    class="w-full bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700">
+                                <button @click="bookVenue(selectedVenue)" class="w-full bg-yellow-600 text-white px-4 py-3 rounded-lg hover:bg-yellow-700">
                                     <i class="fas fa-calendar-check mr-2"></i>Book Venue
                                 </button>
-                                <button @click="contactVenueManager(selectedVenue)"
-                                    class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700">
+                                <button @click="contactVenueManager(selectedVenue)" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700">
                                     <i class="fas fa-phone mr-2"></i>Contact Manager
                                 </button>
                             </div>
@@ -1661,7 +1621,7 @@
                 </div>
             </template>
         </div>
-    </div>    
+    </div>
 
     <!-- Vendor Request Modal -->
     <div x-show="showVendorRequestModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
@@ -1737,36 +1697,42 @@
     <!-- Review Modal -->
     <div x-show="showReviewModal" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4" @click.away="showReviewModal = false">
-            <h2 class="text-2xl font-bold mb-6">Write Review</h2>
+            <h2 class="text-2xl font-bold mb-6">Write Review for <span x-text="selectedVendor?.businessName || selectedVendor?.name"></span></h2>
             <form @submit.prevent="submitReview()">
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-2">Rating</label>
                     <div class="flex space-x-2">
                         <template x-for="i in 5" :key="i">
-                            <button type="button" @click="reviewForm.rating = i" :class="i <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'" class="text-2xl hover:text-yellow-400">
+                            <button type="button" @click="reviewForm.rating = i" :class="i <= reviewForm.rating ? 'text-yellow-400' : 'text-gray-300'" class="text-2xl hover:text-yellow-400 focus:outline-none">
                                 <i class="fas fa-star"></i>
                             </button>
                         </template>
+                    </div>
+                    <div class="text-sm text-gray-600 mt-1">
+                        <span x-text="reviewForm.rating"></span> out of 5 stars
                     </div>
                 </div>
                 <div class="mb-4">
                     <label class="block text-sm font-medium mb-2">Event</label>
                     <select x-model="reviewForm.eventId" required class="w-full border rounded-lg px-3 py-2">
-                        <option value="">Select event...</option>
-                        <template x-for="event in events" :key="event._id">
-                            <option :value="event._id" x-text="event.title"></option>
+                        <option value="">Select event where you worked with this vendor...</option>
+                        <template x-for="event in getCompletedEventsWithVendor(selectedVendor?._id)" :key="event._id">
+                            <option :value="event._id" x-text="event.title + ' - ' + formatDate(event.date.start)"></option>
                         </template>
                     </select>
+                    <template x-if="getCompletedEventsWithVendor(selectedVendor?._id).length === 0">
+                        <p class="text-sm text-gray-500 mt-1">You need to complete an event with this vendor before leaving a review.</p>
+                    </template>
                 </div>
                 <div class="mb-6">
-                    <label class="block text-sm font-medium mb-2">Comment</label>
-                    <textarea x-model="reviewForm.comment" rows="4" class="w-full border rounded-lg px-3 py-2" placeholder="Share your experience..."></textarea>
+                    <label class="block text-sm font-medium mb-2">Your Review</label>
+                    <textarea x-model="reviewForm.comment" rows="4" class="w-full border rounded-lg px-3 py-2" placeholder="Share your experience working with this vendor..." required></textarea>
                 </div>
                 <div class="flex justify-between">
                     <button type="button" @click="showReviewModal = false" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg">
                         Cancel
                     </button>
-                    <button type="submit" class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700">
+                    <button type="submit" :disabled="getCompletedEventsWithVendor(selectedVendor?._id).length === 0" :class="getCompletedEventsWithVendor(selectedVendor?._id).length === 0 ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'" class="text-white px-4 py-2 rounded-lg">
                         Submit Review
                     </button>
                 </div>
@@ -1825,6 +1791,96 @@
         </div>
     </div>
 
+    <!-- Event Reviews Modal -->
+    <div x-show="showEventReviews" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto" @click.away="showEventReviews = false">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Reviews for <span x-text="selectedEvent?.title"></span></h2>
+                <button @click="showEventReviews = false" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <template x-if="eventReviews.length > 0">
+                <div class="space-y-4">
+                    <template x-for="review in eventReviews" :key="review._id">
+                        <div class="border rounded-lg p-4">
+                            <div class="flex items-start justify-between mb-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center mb-2">
+                                        <div class="flex star-rating mr-2">
+                                            <template x-for="i in 5" :key="i">
+                                                <i :class="i <= review.rating ? 'fas fa-star' : 'far fa-star'"></i>
+                                            </template>
+                                        </div>
+                                        <span class="font-medium">Review for <span x-text="review.reviewee.businessName || review.reviewee.name"></span></span>
+                                    </div>
+                                    <p class="text-gray-600 mb-2" x-text="review.comment"></p>
+                                    <div class="text-sm text-gray-500">
+                                        By you • <span x-text="formatDate(review.createdAt)"></span>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Vendor Response -->
+                            <template x-if="review.response">
+                                <div class="mt-3 bg-blue-50 border-l-4 border-blue-400 rounded p-3">
+                                    <div class="flex items-center mb-1">
+                                        <i class="fas fa-reply text-blue-600 mr-2"></i>
+                                        <span class="font-medium text-blue-800">Vendor Response</span>
+                                        <span class="text-sm text-blue-600 ml-2" x-text="formatDate(review.response.respondedAt)"></span>
+                                    </div>
+                                    <p class="text-blue-800" x-text="review.response.content"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </template>
+                </div>
+            </template>
+            
+            <template x-if="eventReviews.length === 0">
+                <div class="text-center text-gray-500 py-8">
+                    <i class="fas fa-star text-4xl mb-4 opacity-50"></i>
+                    <h4 class="font-medium mb-2">No reviews yet</h4>
+                    <p class="text-sm">You haven't reviewed any vendors for this event</p>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Add Portfolio Modal -->
+    <div x-show="showAddPortfolio" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4" @click.away="showAddPortfolio = false">
+            <h2 class="text-2xl font-bold mb-6">Add Portfolio Item</h2>
+            <form @submit.prevent="addPortfolioItem()">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Project Title</label>
+                    <input x-model="portfolioForm.title" type="text" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Description</label>
+                    <textarea x-model="portfolioForm.description" rows="3" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500"></textarea>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium mb-2">Project Date</label>
+                    <input x-model="portfolioForm.date" type="date" required class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-yellow-500">
+                </div>
+                <div class="mb-6">
+                    <label class="block text-sm font-medium mb-2">Images (Optional)</label>
+                    <input type="file" @change="handlePortfolioImageSelect($event)" multiple accept="image/*" class="w-full border rounded-lg px-3 py-2">
+                    <p class="text-sm text-gray-500 mt-1">You can select multiple images</p>
+                </div>
+                <div class="flex justify-between">
+                    <button type="button" @click="showAddPortfolio = false" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">
+                        Cancel
+                    </button>
+                    <button type="submit" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                        Add to Portfolio
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- File Upload Modal -->
     <div x-show="showFileUpload" x-cloak class="fixed inset-0 bg-black bg-opacity-50 modal-backdrop flex items-center justify-center z-50">
         <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4" @click.away="showFileUpload = false">
@@ -1861,7 +1917,7 @@
          x-transition:leave-start="opacity-100 transform translate-y-0"
          x-transition:leave-end="opacity-0 transform translate-y-2"
          class="fixed top-20 right-4 z-50">
-        <div :class="toast.type === 'success' ? 'bg-green-500' : 'bg-red-500'" 
+        <div :class="toast.type === 'success' ? 'bg-green-500' : toast.type === 'error' ? 'bg-red-500' : 'bg-blue-500'" 
              class="text-white px-6 py-3 rounded-lg shadow-lg">
             <p x-text="toast.message"></p>
         </div>
@@ -1892,6 +1948,7 @@
                 showNotifications: false,
                 showSearchResults: false,
                 showAddPortfolio: false,
+                showEventReviews: false,
                 
                 // Selected items
                 selectedEvent: null,
@@ -1921,6 +1978,9 @@
                 reviewForm: {
                     rating: 5, eventId: '', comment: ''
                 },
+                portfolioForm: {
+                    title: '', description: '', date: '', images: [], selectedFiles: null
+                },
                 
                 // Data
                 events: [],
@@ -1930,6 +1990,7 @@
                 currentMessages: [],
                 vendorRequests: [],
                 vendorReviews: [],
+                eventReviews: [],
                 newMessage: '',
                 newEventNote: '',
                 newService: '',
@@ -1986,7 +2047,7 @@
                         const data = await response.json();
                         if (data.success) {
                             this.token = data.token;
-                            this.user = data.user;
+                            this.user = this.initializeUserObject(data.user);
                             this.isAuthenticated = true;
                             localStorage.setItem('token', this.token);
                             this.showLogin = false;
@@ -2015,7 +2076,7 @@
                         const data = await response.json();
                         if (data.success) {
                             this.token = data.token;
-                            this.user = data.user;
+                            this.user = this.initializeUserObject(data.user);
                             this.isAuthenticated = true;
                             localStorage.setItem('token', this.token);
                             this.showRegister = false;
@@ -2040,7 +2101,7 @@
                         
                         const data = await response.json();
                         if (data.success) {
-                            this.user = data.user;
+                            this.user = this.initializeUserObject(data.user);
                             this.isAuthenticated = true;
                             await this.loadDashboardData();
                         } else {
@@ -2049,6 +2110,18 @@
                     } catch (error) {
                         this.logout();
                     }
+                },
+                
+                // Initialize user object with default nested objects
+                initializeUserObject(userData) {
+                    return {
+                        ...userData,
+                        profile: userData.profile || { bio: '', phone: '', whatsapp: '' },
+                        pricing: userData.pricing || { priceRange: { min: 0, max: 0 } },
+                        services: userData.services || [],
+                        portfolio: userData.portfolio || [],
+                        rating: userData.rating || { average: 0, count: 0 }
+                    };
                 },
                 
                 logout() {
@@ -2069,7 +2142,8 @@
                         this.loadVenues(),
                         this.loadConversations(),
                         this.loadNotifications(),
-                        this.loadVendorRequests()
+                        this.loadVendorRequests(),
+                        this.loadMyReviews()
                     ]);
                 },
                 
@@ -2119,7 +2193,14 @@
                 
                 async loadVendors() {
                     try {
-                        const response = await fetch(`${this.apiUrl}/vendors`);
+                        const params = new URLSearchParams();
+                        if (this.vendorSearch.query) params.append('search', this.vendorSearch.query);
+                        if (this.vendorSearch.category) params.append('category', this.vendorSearch.category);
+                        if (this.vendorSearch.emirate) params.append('emirate', this.vendorSearch.emirate);
+                        if (this.vendorSearch.priceMin) params.append('priceMin', this.vendorSearch.priceMin);
+                        if (this.vendorSearch.priceMax) params.append('priceMax', this.vendorSearch.priceMax);
+                        
+                        const response = await fetch(`${this.apiUrl}/vendors?${params}`);
                         const data = await response.json();
                         if (data.success) {
                             this.vendors = data.vendors;
@@ -2131,7 +2212,13 @@
                 
                 async loadVenues() {
                     try {
-                        const response = await fetch(`${this.apiUrl}/venues`);
+                        const params = new URLSearchParams();
+                        if (this.venueSearch.emirate) params.append('emirate', this.venueSearch.emirate);
+                        if (this.venueSearch.type) params.append('venueType', this.venueSearch.type);
+                        if (this.venueSearch.minCapacity) params.append('minCapacity', this.venueSearch.minCapacity);
+                        if (this.venueSearch.maxCapacity) params.append('maxCapacity', this.venueSearch.maxCapacity);
+                        
+                        const response = await fetch(`${this.apiUrl}/venues?${params}`);
                         const data = await response.json();
                         if (data.success) {
                             this.venues = data.venues;
@@ -2197,6 +2284,46 @@
                         }
                     } catch (error) {
                         console.error('Failed to load vendor requests:', error);
+                    }
+                },
+                
+                // Search Functions - FIXED
+                async searchVendors() {
+                    await this.loadVendors();
+                },
+                
+                async searchVenues() {
+                    await this.loadVenues();
+                },
+                
+                async performGlobalSearch() {
+                    if (!this.globalSearch.query || this.globalSearch.query.length < 2) {
+                        this.globalSearch.results = null;
+                        return;
+                    }
+                    
+                    try {
+                        const params = new URLSearchParams({
+                            q: this.globalSearch.query
+                        });
+                        
+                        if (this.isAuthenticated) {
+                            const response = await fetch(`${this.apiUrl}/search?${params}`, {
+                                headers: { 'Authorization': `Bearer ${this.token}` }
+                            });
+                            const data = await response.json();
+                            if (data.success) {
+                                this.globalSearch.results = data.results;
+                            }
+                        } else {
+                            const response = await fetch(`${this.apiUrl}/search?${params}`);
+                            const data = await response.json();
+                            if (data.success) {
+                                this.globalSearch.results = data.results;
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Failed to perform global search:', error);
                     }
                 },
                 
@@ -2357,6 +2484,23 @@
                     this.showToast(`Venue booking would open for: ${venue.name}`, 'success');
                 },
                 
+                contactVenueManager(venue) {
+                    if (venue.contact?.phone) {
+                        window.open(`tel:${venue.contact.phone}`);
+                    } else if (venue.contact?.email) {
+                        window.open(`mailto:${venue.contact.email}`);
+                    } else {
+                        this.showToast('Contact information not available', 'error');
+                    }
+                },
+                
+                // Missing Functions - ADDED
+                showQuoteResponse(request) {
+                    // Set the request context for quote
+                    this.currentRequest = request;
+                    this.showQuoteModal = true;
+                },
+                
                 // Profile Management
                 async updateProfile() {
                     this.loading = true;
@@ -2372,7 +2516,7 @@
                         
                         const data = await response.json();
                         if (data.success) {
-                            this.user = data.user;
+                            this.user = this.initializeUserObject(data.user);
                             this.showToast('Profile updated successfully!', 'success');
                         } else {
                             this.showToast(data.message, 'error');
@@ -2388,10 +2532,95 @@
                     if (!this.user.services) this.user.services = [];
                     this.user.services.push(this.newService.trim());
                     this.newService = '';
+                    
+                    // Auto-save services
+                    this.updateProfile();
                 },
                 
                 removeService(index) {
                     this.user.services.splice(index, 1);
+                },
+                
+                // Portfolio Management
+                handlePortfolioImageSelect(event) {
+                    this.portfolioForm.selectedFiles = Array.from(event.target.files);
+                },
+                
+                async addPortfolioItem() {
+                    this.loading = true;
+                    try {
+                        let imageUrls = [];
+                        
+                        // Upload images if any selected
+                        if (this.portfolioForm.selectedFiles && this.portfolioForm.selectedFiles.length > 0) {
+                            for (const file of this.portfolioForm.selectedFiles) {
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                
+                                const uploadResponse = await fetch(`${this.apiUrl}/upload`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Authorization': `Bearer ${this.token}`
+                                    },
+                                    body: formData
+                                });
+                                
+                                const uploadData = await uploadResponse.json();
+                                if (uploadData.success) {
+                                    imageUrls.push(uploadData.url);
+                                }
+                            }
+                        }
+                        
+                        // Initialize portfolio array if it doesn't exist
+                        if (!this.user.portfolio) {
+                            this.user.portfolio = [];
+                        }
+                        
+                        // Add new portfolio item
+                        const newPortfolioItem = {
+                            title: this.portfolioForm.title,
+                            description: this.portfolioForm.description,
+                            date: this.portfolioForm.date,
+                            images: imageUrls,
+                            createdAt: new Date().toISOString()
+                        };
+                        
+                        this.user.portfolio.push(newPortfolioItem);
+                        
+                        // Update user profile with new portfolio
+                        const response = await fetch(`${this.apiUrl}/users/profile`, {
+                            method: 'PUT',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${this.token}` 
+                            },
+                            body: JSON.stringify({
+                                portfolio: this.user.portfolio
+                            })
+                        });
+                        
+                        const data = await response.json();
+                        if (data.success) {
+                            this.user = data.user;
+                            this.showAddPortfolio = false;
+                            this.resetPortfolioForm();
+                            this.showToast('Portfolio item added successfully!', 'success');
+                        } else {
+                            this.showToast(data.message, 'error');
+                        }
+                    } catch (error) {
+                        this.showToast('Failed to add portfolio item', 'error');
+                        console.error('Portfolio upload error:', error);
+                    }
+                    this.loading = false;
+                },
+                
+                removePortfolioItem(index) {
+                    if (confirm('Are you sure you want to remove this portfolio item?')) {
+                        this.user.portfolio.splice(index, 1);
+                        this.updateProfile();
+                    }
                 },
                 
                 // Messaging
@@ -2536,6 +2765,8 @@
                             this.resetReviewForm();
                             this.showToast('Review submitted successfully!', 'success');
                             await this.loadVendorReviews(this.selectedVendor._id);
+                            // Update vendor rating
+                            this.selectedVendor.rating = data.review.newRating || this.selectedVendor.rating;
                         } else {
                             this.showToast(data.message, 'error');
                         }
@@ -2543,6 +2774,84 @@
                         this.showToast('Failed to submit review', 'error');
                     }
                     this.loading = false;
+                },
+                
+                async respondToReview(review) {
+                    if (!review.responseText || !review.responseText.trim()) {
+                        this.showToast('Please enter a response', 'error');
+                        return;
+                    }
+                    
+                    this.loading = true;
+                    try {
+                        // Since the backend doesn't have a specific endpoint for review responses,
+                        // we'll simulate this functionality for now
+                        this.showToast('Review response feature coming soon!', 'info');
+                        
+                        // TODO: Implement when backend adds review response endpoint
+                        // For now, just update locally
+                        review.response = {
+                            content: review.responseText.trim(),
+                            respondedAt: new Date().toISOString()
+                        };
+                        review.responseText = '';
+                    } catch (error) {
+                        this.showToast('Failed to respond to review', 'error');
+                        console.error('Review response error:', error);
+                    }
+                    this.loading = false;
+                },
+                
+                // Helper function to get completed events with a specific vendor
+                getCompletedEventsWithVendor(vendorId) {
+                    if (!vendorId || !this.events) return [];
+                    
+                    return this.events.filter(event => {
+                        // Check if event is completed or ongoing
+                        if (event.status !== 'completed' && event.status !== 'ongoing') return false;
+                        
+                        // Check if this vendor was involved and the request was completed
+                        return event.vendorRequests && event.vendorRequests.some(request => 
+                            request.vendor._id === vendorId && 
+                            (request.status === 'completed' || request.status === 'accepted')
+                        );
+                    });
+                },
+                
+                // Load reviews when vendor profile is opened
+                async loadMyReviews() {
+                    if (this.user.userType === 'vendor') {
+                        await this.loadVendorReviews(this.user.id);
+                    }
+                },
+                
+                // View reviews for a specific event
+                async viewEventReviews(event) {
+                    this.selectedEvent = event;
+                    try {
+                        // Load reviews for all vendors in this event
+                        const vendorIds = event.vendorRequests
+                            .filter(vr => vr.status === 'completed')
+                            .map(vr => vr.vendor._id);
+                        
+                        let allReviews = [];
+                        for (const vendorId of vendorIds) {
+                            const response = await fetch(`${this.apiUrl}/reviews/${vendorId}`);
+                            const data = await response.json();
+                            if (data.success) {
+                                // Filter reviews for this specific event
+                                const eventReviews = data.reviews.filter(review => 
+                                    review.event && review.event._id === event._id
+                                );
+                                allReviews = [...allReviews, ...eventReviews];
+                            }
+                        }
+                        
+                        this.eventReviews = allReviews;
+                        this.showEventReviews = true;
+                    } catch (error) {
+                        this.showToast('Failed to load event reviews', 'error');
+                    }
                 },
                 
                 // Budget Recommendations
@@ -2787,6 +3096,12 @@
                 resetReviewForm() {
                     this.reviewForm = {
                         rating: 5, eventId: '', comment: ''
+                    };
+                },
+                
+                resetPortfolioForm() {
+                    this.portfolioForm = {
+                        title: '', description: '', date: '', images: [], selectedFiles: null
                     };
                 }
             }
