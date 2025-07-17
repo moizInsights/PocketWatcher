@@ -54,7 +54,7 @@
                                     </div>
                                 </template>
                                 
-                                <template x-if="globalSearch.results && globalSearch.results.venues?.length > 0">
+                                <template x-if=".results && globalSearch.results.venues?.length > 0">
                                     <div class="p-2 border-t">
                                         <h3 class="font-bold text-sm text-gray-600 mb-2">Venues</h3>
                                         <template x-for="venue in globalSearch.results.venues" :key="venue._id">
@@ -1940,7 +1940,7 @@
                 // Search
                 vendorSearch: { query: '', category: '', emirate: '', priceMin: '', priceMax: '' },
                 venueSearch: { emirate: '', type: '', minCapacity: '', maxCapacity: '' },
-                globalSearch: { query: '', results: null },
+                globalSearch: { query: '', results: {} },
                 
                 // File upload
                 selectedFile: null,
