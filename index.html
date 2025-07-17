@@ -42,7 +42,7 @@
                             <div x-show="showSearchResults && globalSearch.results" 
                                  x-cloak
                                  class="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50">
-                                 <template x-if="globalSearch.results && globalSearch.results.vendors?.length > 0">
+                                 <template x-if="globalSearch.results.vendors.length > 0">
                                     <div class="p-2">
                                         <h3 class="font-bold text-sm text-gray-600 mb-2">Vendors</h3>
                                         <template x-for="vendor in globalSearch.results.vendors" :key="vendor._id">
@@ -54,7 +54,7 @@
                                     </div>
                                 </template>
                                 
-                                <template x-if=".results && globalSearch.results.venues?.length > 0">
+                                <template x-if="globalSearch.results.vendors.length > 0">
                                     <div class="p-2 border-t">
                                         <h3 class="font-bold text-sm text-gray-600 mb-2">Venues</h3>
                                         <template x-for="venue in globalSearch.results.venues" :key="venue._id">
@@ -1940,7 +1940,7 @@
                 // Search
                 vendorSearch: { query: '', category: '', emirate: '', priceMin: '', priceMax: '' },
                 venueSearch: { emirate: '', type: '', minCapacity: '', maxCapacity: '' },
-                globalSearch: { query: '', results: {} },
+                globalSearch: { query: '', results: { vendors: [], venues: [] } },
                 
                 // File upload
                 selectedFile: null,
@@ -2489,22 +2489,20 @@
                 },
                 
                 contactVendor(vendor) {
-                    const existingConversation = this.conversations.find(c => 
-                        c.participant._id === vendor._id
-                    );
+                  const existingConversation = this.conversations.find(c => 
+                    c.participant._id === vendor._id
+                  );
                 
-                    if (existingConversation) {
-                        this.selectConversation(existingConversation);
-                    } else {
-                        this.selectedConversation = {
-                            participant: vendor
-                        };
-                        this.currentMessages = [];
-                        this.loadMessages(vendor._id); // 🔧 This is what’s missing
-                    }
+                  if (existingConversation) {
+                    this.selectConversation(existingConversation);
+                  } else {
+                    this.selectedConversation = { participant: vendor };
+                    this.currentMessages = [];
+                    this.loadMessages(vendor._id); // ✅ Add this
+                  }
                 
-                    this.activeTab = 'messages';
-                },
+                  this.activeTab = 'messages';
+                }
                                 
                 contactVendorFromEvent(vendor) {
                     this.contactVendor(vendor);
