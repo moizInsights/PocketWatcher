@@ -42,7 +42,7 @@
                             <div x-show="showSearchResults && globalSearch.results" 
                                  x-cloak
                                  class="absolute top-full left-0 right-0 bg-white border rounded-lg shadow-lg mt-1 max-h-96 overflow-y-auto z-50">
-                                 <template x-if="globalSearch.results.vendors.length > 0">
+                                <template x-if="globalSearch.results.vendors?.length > 0">
                                     <div class="p-2">
                                         <h3 class="font-bold text-sm text-gray-600 mb-2">Vendors</h3>
                                         <template x-for="vendor in globalSearch.results.vendors" :key="vendor._id">
@@ -54,7 +54,7 @@
                                     </div>
                                 </template>
                                 
-                                <template x-if="globalSearch.results.vendors.length > 0">
+                                <template x-if="globalSearch.results.venues?.length > 0">
                                     <div class="p-2 border-t">
                                         <h3 class="font-bold text-sm text-gray-600 mb-2">Venues</h3>
                                         <template x-for="venue in globalSearch.results.venues" :key="venue._id">
@@ -834,6 +834,7 @@
             </div>
         </template>
     </div>
+</div>
 
                 <!-- Messages Tab -->
                 <div x-show="activeTab === 'messages'" x-cloak>
@@ -1940,7 +1941,7 @@
                 // Search
                 vendorSearch: { query: '', category: '', emirate: '', priceMin: '', priceMax: '' },
                 venueSearch: { emirate: '', type: '', minCapacity: '', maxCapacity: '' },
-                globalSearch: { query: '', results: { vendors: [], venues: [] } },
+                globalSearch: { query: '', results: null },
                 
                 // File upload
                 selectedFile: null,
